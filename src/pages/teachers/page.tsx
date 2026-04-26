@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { teachers } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 const statusColors: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700",
@@ -17,14 +17,39 @@ const avatarGradients = [
 ];
 
 export default function TeachersPage() {
+  const { teachers, addTeacher } = useSchoolData();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    subject: "",
+    email: "",
+    phone: "",
+    yearsOfExperience: "",
+    className: "",
+  });
 
   const filtered = teachers.filter(
     (t) =>
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       t.subject.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleSubmit = async () => {
+    if (!form.fullName || !form.subject || !form.email || !form.phone || !form.yearsOfExperience) return;
+    setSubmitting(true);
+    try {
+      await addTeacher(form);
+      setForm({ fullName: "", subject: "", email: "", phone: "", yearsOfExperience: "", className: "" });
+      setShowModal(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedTeacher = teachers.find((teacher) => teacher.id === selectedTeacherId) ?? null;
 
   return (
     <AppLayout title="Teacher Management" subtitle="Manage teaching staff and assignments">
@@ -120,9 +145,9 @@ export default function TeachersPage() {
                 <i className="ri-mail-line text-sm"></i>
                 Email
               </a>
-              <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-600 text-xs font-medium cursor-pointer transition-all">
+              <button onClick={() => setSelectedTeacherId(t.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 text-violet-600 text-xs font-medium cursor-pointer transition-all">
                 <i className="ri-edit-line text-sm"></i>
-                Edit
+                View Profile
               </button>
             </div>
           </div>
@@ -140,16 +165,19 @@ export default function TeachersPage() {
             </div>
             <div className="p-6 space-y-4">
               {[
-                { label: "Full Name", placeholder: "e.g. Mr. Samuel Agyei", type: "text" },
-                { label: "Subject", placeholder: "e.g. Mathematics", type: "text" },
-                { label: "Email Address", placeholder: "teacher@school.edu", type: "email" },
-                { label: "Phone Number", placeholder: "+233 24 000 0000", type: "tel" },
-                { label: "Years of Experience", placeholder: "e.g. 5", type: "number" },
+                { key: "fullName", label: "Full Name", placeholder: "e.g. Mr. Samuel Agyei", type: "text" },
+                { key: "subject", label: "Subject", placeholder: "e.g. Mathematics", type: "text" },
+                { key: "email", label: "Email Address", placeholder: "teacher@school.edu", type: "email" },
+                { key: "phone", label: "Phone Number", placeholder: "+233 24 000 0000", type: "tel" },
+                { key: "yearsOfExperience", label: "Years of Experience", placeholder: "e.g. 5", type: "number" },
+                { key: "className", label: "Assigned Class", placeholder: "e.g. Grade 9A", type: "text" },
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">{f.label}</label>
                   <input
                     type={f.type}
+                    value={form[f.key as keyof typeof form]}
+                    onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
                     className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-violet-300 transition-all bg-slate-50 focus:bg-white"
                   />
@@ -158,7 +186,37 @@ export default function TeachersPage() {
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-all whitespace-nowrap">Cancel</button>
-              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-semibold hover:opacity-90 cursor-pointer transition-all whitespace-nowrap shadow-md">Add Teacher</button>
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-semibold hover:opacity-90 cursor-pointer transition-all whitespace-nowrap shadow-md disabled:opacity-50">{submitting ? "Saving..." : "Add Teacher"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTeacher && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <p className="font-bold text-slate-800">Teacher Profile</p>
+              <button onClick={() => setSelectedTeacherId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              {[
+                ["Name", selectedTeacher.name],
+                ["Subject", selectedTeacher.subject],
+                ["Classes", selectedTeacher.classes.join(", ") || "Not assigned"],
+                ["Status", selectedTeacher.status],
+                ["Experience", selectedTeacher.experience],
+                ["Students", selectedTeacher.students],
+                ["Rating", selectedTeacher.rating],
+                ["Email", selectedTeacher.email],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400">{label}</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-1">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

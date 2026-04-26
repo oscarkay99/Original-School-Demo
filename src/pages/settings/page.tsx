@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState("+233 30 000 0000");
   const [address, setAddress] = useState("123 Education Avenue, Accra, Ghana");
   const [saved, setSaved] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [accentColor, setAccentColor] = useState("Emerald");
+  const [sidebarStyle, setSidebarStyle] = useState("Dark Navy (Current)");
 
   const [notifs, setNotifs] = useState({
     feeAlerts: true,
@@ -192,7 +195,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-sm font-semibold text-amber-800">Two-Factor Authentication</p>
                     <p className="text-xs text-amber-600 mt-0.5">Add an extra layer of security to your account</p>
-                    <button className="mt-2 text-xs font-semibold text-amber-700 hover:text-amber-800 cursor-pointer">Enable 2FA &rarr;</button>
+                    <button onClick={() => setTwoFactorEnabled((prev) => !prev)} className="mt-2 text-xs font-semibold text-amber-700 hover:text-amber-800 cursor-pointer">{twoFactorEnabled ? "Disable 2FA →" : "Enable 2FA →"}</button>
                   </div>
                 </div>
               </div>
@@ -219,6 +222,7 @@ export default function SettingsPage() {
                     ].map((c) => (
                       <button
                         key={c.name}
+                        onClick={() => setAccentColor(c.name)}
                         className="w-10 h-10 rounded-xl cursor-pointer hover:scale-110 transition-all border-2 border-white shadow-md"
                         style={{ background: `linear-gradient(135deg, ${c.from}, ${c.to})` }}
                         title={c.name}
@@ -232,7 +236,8 @@ export default function SettingsPage() {
                     {["Dark Navy (Current)", "Midnight Black"].map((style) => (
                       <button
                         key={style}
-                        className={`p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all ${style.includes("Current") ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                        onClick={() => setSidebarStyle(style)}
+                        className={`p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all ${sidebarStyle === style ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-200 text-slate-600 hover:border-slate-300"}`}
                       >
                         {style}
                       </button>

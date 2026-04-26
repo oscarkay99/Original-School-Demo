@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
 import MetricCard from "./components/MetricCard";
 import AttendanceChart from "./components/AttendanceChart";
@@ -7,14 +7,88 @@ import GradeDistribution from "./components/GradeDistribution";
 import RecentActivity from "./components/RecentActivity";
 import TopStudents from "./components/TopStudents";
 import QuickActions from "./components/QuickActions";
-import { students, teachers } from "@/mocks/schoolData";
 import { useCountUp } from "@/hooks/useCountUp";
+import { checkSupabaseConnection } from "@/lib/supabase";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import ParentDashboard from "./components/ParentDashboard";
 
-const activeStudents = students.filter((s) => s.status === "Active").length;
-const presentToday = students.filter((s) => s.attendance >= 90).length;
-const avgGrade = Math.round(students.reduce((a, b) => a + b.gpa, 0) / students.length * 25);
+function SupabaseStatusCard() {
+  const [status, setStatus] = useState<"checking" | "connected" | "failed">("checking");
+  const [message, setMessage] = useState("Checking Supabase connection...");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void checkSupabaseConnection()
+      .then((code) => {
+        if (cancelled) return;
+        setStatus("connected");
+        setMessage(`Supabase REST API reachable (${code}).`);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setStatus("failed");
+        setMessage(error instanceof Error ? error.message : "Supabase connection failed.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const tone =
+    status === "connected"
+      ? {
+          dot: "bg-emerald-400",
+          panel: "linear-gradient(135deg, #052e16 0%, #14532d 100%)",
+          border: "border-emerald-400/20",
+          text: "text-emerald-50",
+          subtext: "text-emerald-100/70",
+        }
+      : status === "failed"
+        ? {
+            dot: "bg-rose-400",
+            panel: "linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%)",
+            border: "border-rose-400/20",
+            text: "text-rose-50",
+            subtext: "text-rose-100/70",
+          }
+        : {
+            dot: "bg-amber-300",
+            panel: "linear-gradient(135deg, #422006 0%, #78350f 100%)",
+            border: "border-amber-300/20",
+            text: "text-amber-50",
+            subtext: "text-amber-100/70",
+          };
+
+  return (
+    <div
+      className={`rounded-3xl border px-6 py-5 ${tone.border}`}
+      style={{ background: tone.panel }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${tone.dot}`}></span>
+            <span className={`text-[11px] font-bold uppercase tracking-[0.24em] ${tone.subtext}`}>
+              Supabase
+            </span>
+          </div>
+          <h3 className={`text-lg font-bold ${tone.text}`}>Database connection status</h3>
+          <p className={`mt-1 text-sm ${tone.subtext}`}>{message}</p>
+        </div>
+        <div className={`rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm ${tone.text}`}>
+          <div className="font-semibold">Project</div>
+          <div className={`mt-1 font-mono text-xs ${tone.subtext}`}>amofwvuezbvytzwfbvdm</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function HeroBanner() {
+  const { students } = useSchoolData();
+  const activeStudents = students.filter((s) => s.status === "Active").length;
   const [year, setYear] = useState("2025/26");
   const [term, setTerm] = useState("All Terms");
   const collectedAnim = useCountUp(18000, 1600, 0);
@@ -125,9 +199,24 @@ function HeroBanner() {
 }
 
 export default function Dashboard() {
+  const { students, teachers, financeData, currentUserRole } = useSchoolData();
+  const activeStudents = students.filter((s) => s.status === "Active").length;
+  const presentToday = students.filter((s) => s.attendance >= 90).length;
+  const avgGrade = Math.round((students.reduce((a, b) => a + b.gpa, 0) / Math.max(students.length, 1)) * 25);
+
+  if (currentUserRole === "Parent") {
+    return (
+      <AppLayout title="Parent Portal" subtitle="Your child's school overview">
+        <ParentDashboard />
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout title="Dashboard" subtitle="Live command center · AY 2025/26">
       <div className="space-y-6">
+
+        <SupabaseStatusCard />
 
         {/* Hero */}
         <HeroBanner />
@@ -142,6 +231,7 @@ export default function Dashboard() {
             gradient="linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)"
             change="+8%"
             changeUp
+            path="/students"
           />
           <MetricCard
             label="Teaching Staff"
@@ -151,6 +241,7 @@ export default function Dashboard() {
             gradient="linear-gradient(135deg, #059669 0%, #047857 100%)"
             change="+1 new"
             changeUp
+            path="/teachers"
           />
           <MetricCard
             label="Present Today"
@@ -160,6 +251,7 @@ export default function Dashboard() {
             gradient="linear-gradient(135deg, #d97706 0%, #b45309 100%)"
             change="83%"
             changeUp
+            path="/attendance"
           />
           <MetricCard
             label="Average Grade"
@@ -170,6 +262,7 @@ export default function Dashboard() {
             suffix="%"
             change="+1.2%"
             changeUp
+            path="/grades"
           />
         </div>
 

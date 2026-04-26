@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { canAccessRoute, normalizeRole } from "@/lib/access";
 
 interface TopBarProps {
   title?: string;
@@ -33,7 +35,20 @@ const pageMap: Record<string, { icon: string }> = {
 export default function TopBar({ title = "Dashboard", subtitle, sidebarCollapsed }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentUserRole, currentUserName } = useSchoolData();
   const [search, setSearch] = useState("");
+  const role = normalizeRole(currentUserRole);
+  const initials = currentUserName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "U";
+  const quickLinks = [
+    { path: "/students", icon: "ri-group-line" },
+    { path: "/attendance", icon: "ri-calendar-check-line" },
+    { path: "/reports", icon: "ri-file-chart-line" },
+  ].filter((item) => canAccessRoute(role, item.path));
 
   const page = pageMap[location.pathname] || { icon: "ri-dashboard-3-line" };
 
@@ -55,15 +70,11 @@ export default function TopBar({ title = "Dashboard", subtitle, sidebarCollapsed
 
       {/* Quick nav icons */}
       <div className="hidden lg:flex items-center gap-1">
-        <Link to="/students" className="w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer text-slate-400 hover:text-slate-700 hover:bg-slate-100">
-          <i className="ri-group-line text-sm"></i>
-        </Link>
-        <Link to="/attendance" className="w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer text-slate-400 hover:text-slate-700 hover:bg-slate-100">
-          <i className="ri-calendar-check-line text-sm"></i>
-        </Link>
-        <Link to="/reports" className="w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer text-slate-400 hover:text-slate-700 hover:bg-slate-100">
-          <i className="ri-file-chart-line text-sm"></i>
-        </Link>
+        {quickLinks.map((item) => (
+          <Link key={item.path} to={item.path} className="w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+            <i className={`${item.icon} text-sm`}></i>
+          </Link>
+        ))}
       </div>
 
       {/* Search */}
@@ -89,14 +100,14 @@ export default function TopBar({ title = "Dashboard", subtitle, sidebarCollapsed
       {/* User */}
       <div
         className="flex items-center gap-2.5 cursor-pointer group"
-        onClick={() => navigate("/settings")}
+        onClick={() => navigate(canAccessRoute(role, "/settings") ? "/settings" : "/")}
       >
         <div className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center text-white text-xs font-bold group-hover:ring-2 group-hover:ring-violet-300 transition-all">
-          ON
+          {initials}
         </div>
         <div className="hidden md:block">
-          <p className="text-xs font-extrabold text-slate-800 leading-tight">Oscar Nyavor</p>
-          <p className="text-[10px] text-slate-400 font-medium">Administrator</p>
+          <p className="text-xs font-extrabold text-slate-800 leading-tight">{currentUserName}</p>
+          <p className="text-[10px] text-slate-400 font-medium">{role}</p>
         </div>
         <i className="ri-arrow-down-s-line text-slate-400 text-sm hidden md:block"></i>
       </div>

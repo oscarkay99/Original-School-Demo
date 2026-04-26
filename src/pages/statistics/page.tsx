@@ -1,5 +1,6 @@
 import AppLayout from "@/components/feature/AppLayout";
-import { students, teachers, attendanceData, financeData } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { downloadCsv } from "@/lib/download";
 
 const gradeDistribution = [
   { grade: "Grade 8", students: 3, avgGpa: 3.9, attendance: 97 },
@@ -26,9 +27,18 @@ const termComparison = [
 ];
 
 export default function StatisticsPage() {
+  const { students, teachers, attendanceData, financeData, gradesRows } = useSchoolData();
   const avgGpa = (students.reduce((a, b) => a + b.gpa, 0) / students.length).toFixed(2);
   const avgAttendance = Math.round(students.reduce((a, b) => a + b.attendance, 0) / students.length);
   const feeRate = Math.round((financeData.collected / financeData.totalRevenue) * 100);
+
+  const exportStatistics = () => {
+    downloadCsv(
+      "statistics-subject-performance.csv",
+      ["Subject", "Teacher", "Average", "Highest", "Lowest"],
+      subjectPerformance.map((s) => [s.subject, s.teacher, `${s.avg}%`, `${s.highest}%`, `${s.lowest}%`]),
+    );
+  };
 
   return (
     <AppLayout title="Statistics" subtitle="Deep analytics and performance insights">
@@ -131,7 +141,7 @@ export default function StatisticsPage() {
             <p className="font-semibold text-slate-800 text-sm">Subject Performance Analysis</p>
             <p className="text-xs text-slate-400 mt-0.5">Average scores, highest and lowest per subject</p>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 font-medium cursor-pointer hover:bg-slate-100 transition-all">
+          <button onClick={exportStatistics} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 font-medium cursor-pointer hover:bg-slate-100 transition-all">
             <i className="ri-download-line text-sm"></i>Export
           </button>
         </div>
@@ -145,7 +155,7 @@ export default function StatisticsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {subjectPerformance.map((s) => (
+            {subjectPerformance.map((s) => (
                 <tr key={s.subject} className="hover:bg-slate-50 transition-all">
                   <td className="py-3 pr-4">
                     <p className="text-sm font-semibold text-slate-800">{s.subject}</p>

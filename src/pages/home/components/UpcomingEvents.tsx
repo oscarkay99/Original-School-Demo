@@ -1,4 +1,4 @@
-import { events } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 import { useNavigate } from "react-router-dom";
 
 const typeColors: Record<string, { bg: string; text: string; dot: string }> = {
@@ -10,7 +10,11 @@ const typeColors: Record<string, { bg: string; text: string; dot: string }> = {
 
 export default function UpcomingEvents() {
   const navigate = useNavigate();
-  const upcoming = events.filter((e) => e.status === "Upcoming").slice(0, 4);
+  const { events } = useSchoolData();
+  const upcoming = [...events]
+    .filter((e) => e.status === "Upcoming")
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 4);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-5">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { inventoryItems } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 const statusConfig: Record<string, { bg: string; text: string; dot: string }> = {
   "In Stock": { bg: "bg-emerald-100", text: "text-emerald-700", dot: "bg-emerald-400" },
@@ -18,19 +18,45 @@ const categoryGradients: Record<string, string> = {
 };
 
 export default function InventoryPage() {
+  const { inventoryItems, addInventoryItem } = useSchoolData();
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
   const [showModal, setShowModal] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [removedItemIds, setRemovedItemIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    itemName: "",
+    quantity: "",
+    minimumStock: "",
+    unitValue: "",
+    category: "Books",
+  });
 
-  const categories = ["All", ...Array.from(new Set(inventoryItems.map((i) => i.category)))];
-  const filtered = inventoryItems.filter((item) => {
+  const workingItems = inventoryItems.filter((item) => !removedItemIds.includes(item.id));
+  const categories = ["All", ...Array.from(new Set(workingItems.map((i) => i.category)))];
+  const filtered = workingItems.filter((item) => {
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCat === "All" || item.category === filterCat;
     return matchSearch && matchCat;
   });
 
-  const totalValue = inventoryItems.reduce((a, b) => a + b.value, 0);
-  const lowStock = inventoryItems.filter((i) => i.status === "Low Stock" || i.status === "Critical").length;
+  const totalValue = workingItems.reduce((a, b) => a + b.value, 0);
+  const lowStock = workingItems.filter((i) => i.status === "Low Stock" || i.status === "Critical").length;
+
+  const handleSubmit = async () => {
+    if (!form.itemName || !form.quantity || !form.minimumStock) return;
+    setSubmitting(true);
+    try {
+      await addInventoryItem(form);
+      setForm({ itemName: "", quantity: "", minimumStock: "", unitValue: "", category: "Books" });
+      setShowModal(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedItem = workingItems.find((item) => item.id === selectedItemId) ?? null;
 
   return (
     <AppLayout title="Inventory" subtitle="Track school assets and supplies">
@@ -135,10 +161,10 @@ export default function InventoryPage() {
                     <td className="px-5 py-3.5 text-xs text-slate-400 whitespace-nowrap">{item.lastUpdated}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer">
+                        <button onClick={() => setSelectedItemId(item.id)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer">
                           <i className="ri-edit-line text-sm"></i>
                         </button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-500 cursor-pointer">
+                        <button onClick={() => setRemovedItemIds((prev) => [...prev, item.id])} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-500 cursor-pointer">
                           <i className="ri-delete-bin-line text-sm"></i>
                         </button>
                       </div>
@@ -162,26 +188,55 @@ export default function InventoryPage() {
             </div>
             <div className="p-6 space-y-4">
               {[
-                { label: "Item Name", placeholder: "e.g. Textbooks - Science", type: "text" },
-                { label: "Quantity", placeholder: "e.g. 50", type: "number" },
-                { label: "Minimum Stock Level", placeholder: "e.g. 20", type: "number" },
-                { label: "Unit Value (GH₵)", placeholder: "e.g. 50", type: "number" },
+                { key: "itemName", label: "Item Name", placeholder: "e.g. Textbooks - Science", type: "text" },
+                { key: "quantity", label: "Quantity", placeholder: "e.g. 50", type: "number" },
+                { key: "minimumStock", label: "Minimum Stock Level", placeholder: "e.g. 20", type: "number" },
+                { key: "unitValue", label: "Unit Value (GH₵)", placeholder: "e.g. 50", type: "number" },
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">{f.label}</label>
-                  <input type={f.type} placeholder={f.placeholder} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-300 transition-all bg-slate-50 focus:bg-white" />
+                  <input type={f.type} value={form[f.key as keyof typeof form]} onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-300 transition-all bg-slate-50 focus:bg-white" />
                 </div>
               ))}
               <div>
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Category</label>
-                <select className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-300 transition-all bg-slate-50 cursor-pointer">
+                <select value={form.category} onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-300 transition-all bg-slate-50 cursor-pointer">
                   {Object.keys(categoryGradients).map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer whitespace-nowrap">Cancel</button>
-              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap">Add Item</button>
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap disabled:opacity-50">{submitting ? "Saving..." : "Add Item"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <p className="font-bold text-slate-800">Inventory Item</p>
+              <button onClick={() => setSelectedItemId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              {[
+                ["Item", selectedItem.name],
+                ["Category", selectedItem.category],
+                ["Quantity", selectedItem.quantity],
+                ["Min Stock", selectedItem.minStock],
+                ["Value", `GH₵${selectedItem.value.toLocaleString()}`],
+                ["Status", selectedItem.status],
+                ["Last Updated", selectedItem.lastUpdated],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400">{label}</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-1">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

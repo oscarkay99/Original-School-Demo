@@ -1,54 +1,9 @@
 import { useNavigate } from "react-router-dom";
-
-const activities = [
-  {
-    id: 1,
-    text: "New student Kojo Tetteh enrolled in JHS 1B",
-    tag: "Enrollment",
-    time: "2 min ago",
-    icon: "ri-user-add-line",
-    tagBg: "bg-violet-100",
-    tagText: "text-violet-700",
-    iconBg: "bg-violet-50",
-    iconColor: "text-violet-600",
-  },
-  {
-    id: 2,
-    text: "Fee payment GH₵2,400 received — Kofi Owusu",
-    tag: "Finance",
-    time: "18 min ago",
-    icon: "ri-money-dollar-circle-line",
-    tagBg: "bg-emerald-100",
-    tagText: "text-emerald-700",
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-  },
-  {
-    id: 3,
-    text: "JHS 3A attendance marked — 14/15 present today",
-    tag: "Attendance",
-    time: "1 hr ago",
-    icon: "ri-calendar-check-line",
-    tagBg: "bg-amber-100",
-    tagText: "text-amber-700",
-    iconBg: "bg-amber-50",
-    iconColor: "text-amber-600",
-  },
-  {
-    id: 4,
-    text: "Certificate issued to Abena Frimpong — Academic Excellence",
-    tag: "Certificate",
-    time: "3 hr ago",
-    icon: "ri-medal-line",
-    tagBg: "bg-rose-100",
-    tagText: "text-rose-700",
-    iconBg: "bg-rose-50",
-    iconColor: "text-rose-600",
-  },
-];
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 export default function RecentActivity() {
   const navigate = useNavigate();
+  const { recentActivity: activities } = useSchoolData();
   return (
     <div className="bg-white rounded-2xl p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-5">
@@ -66,6 +21,7 @@ export default function RecentActivity() {
         {activities.map((a) => (
           <div
             key={a.id}
+            onClick={() => navigate("/notifications")}
             className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer group"
           >
             <div className={`w-9 h-9 rounded-xl ${a.iconBg} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>

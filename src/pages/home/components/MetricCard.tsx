@@ -1,4 +1,5 @@
 import { useCountUp } from "@/hooks/useCountUp";
+import { useNavigate } from "react-router-dom";
 
 interface MetricCardProps {
   label: string;
@@ -10,15 +11,18 @@ interface MetricCardProps {
   changeUp?: boolean;
   suffix?: string;
   decimals?: number;
+  path?: string;
 }
 
-export default function MetricCard({ label, value, sub, icon, gradient, change, changeUp = true, suffix = "", decimals = 0 }: MetricCardProps) {
+export default function MetricCard({ label, value, sub, icon, gradient, change, changeUp = true, suffix = "", decimals = 0, path }: MetricCardProps) {
+  const navigate = useNavigate();
   const animated = useCountUp(value, 1600, decimals);
   const display = decimals > 0 ? animated.toFixed(decimals) : Math.round(animated).toLocaleString();
 
   return (
     <div
-      className="rounded-2xl p-5 text-white relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all duration-300"
+      onClick={() => path && navigate(path)}
+      className={`rounded-2xl p-5 text-white relative overflow-hidden group transition-all duration-300 ${path ? "cursor-pointer hover:scale-[1.02]" : ""}`}
       style={{ background: gradient }}
     >
       {/* Decorative blobs */}

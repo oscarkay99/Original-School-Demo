@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
+import { downloadCsv } from "@/lib/download";
 
 const staffPayroll = [
   { id: 1, name: "Mr. Samuel Agyei", role: "Mathematics Teacher", department: "Academic", salary: 3200, allowances: 450, deductions: 320, net: 3330, status: "Paid", payDate: "2026-04-25", avatar: "SA", leaveBalance: 12 },
@@ -23,6 +24,15 @@ export default function HRPayrollPage() {
   const totalPayroll = staffPayroll.reduce((a, b) => a + b.net, 0);
   const paid = staffPayroll.filter((s) => s.status === "Paid").reduce((a, b) => a + b.net, 0);
   const pending = staffPayroll.filter((s) => s.status === "Pending").reduce((a, b) => a + b.net, 0);
+  const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
+
+  const exportPayroll = () => {
+    downloadCsv(
+      "payroll-payslips.csv",
+      ["Staff Member", "Role", "Basic Salary", "Allowances", "Deductions", "Net Pay", "Status", "Pay Date"],
+      staffPayroll.map((s) => [s.name, s.role, s.salary, s.allowances, s.deductions, s.net, s.status, s.payDate]),
+    );
+  };
 
   return (
     <AppLayout title="HR & Payroll" subtitle="Staff management, salaries and leave tracking">
@@ -64,7 +74,7 @@ export default function HRPayrollPage() {
               <p className="font-semibold text-slate-800 text-sm">April 2026 Payroll</p>
               <p className="text-xs text-slate-400 mt-0.5">Pay period: April 1 – April 30, 2026</p>
             </div>
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
+            <button onClick={exportPayroll} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
               <i className="ri-download-line text-sm"></i>Export Payslips
             </button>
           </div>
@@ -153,7 +163,7 @@ export default function HRPayrollPage() {
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig[s.status]}`}>{s.status}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <button className="text-xs text-violet-600 font-medium hover:text-violet-700 cursor-pointer">Manage</button>
+                        <button onClick={() => setSelectedStaffId(s.id)} className="text-xs text-violet-600 font-medium hover:text-violet-700 cursor-pointer">Manage</button>
                       </td>
                     </tr>
                   );
@@ -204,6 +214,46 @@ export default function HRPayrollPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectedStaffId !== null && (
+        <div className="fixed inset-0 z-50 bg-slate-950/30 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-100 shadow-xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <p className="font-semibold text-slate-800 text-sm">Staff Leave Record</p>
+              <button onClick={() => setSelectedStaffId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            {(() => {
+              const staff = staffPayroll.find((s) => s.id === selectedStaffId);
+              if (!staff) return null;
+              const used = 21 - staff.leaveBalance;
+              return (
+                <div className="p-5 space-y-4">
+                  <div>
+                    <p className="text-base font-bold text-slate-800">{staff.name}</p>
+                    <p className="text-xs text-slate-400 mt-1">{staff.role}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-[11px] text-slate-400 uppercase tracking-wide">Leave Balance</p>
+                      <p className="text-lg font-bold text-slate-800 mt-1">{staff.leaveBalance} days</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-[11px] text-slate-400 uppercase tracking-wide">Used</p>
+                      <p className="text-lg font-bold text-slate-800 mt-1">{used} days</p>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-100 p-3">
+                    <p className="text-xs text-slate-500">Status</p>
+                    <p className="text-sm font-semibold text-slate-800 mt-1">{staff.status}</p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

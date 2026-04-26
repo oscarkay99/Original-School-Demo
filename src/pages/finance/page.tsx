@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { financeData } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 const statusColors: Record<string, string> = {
   Completed: "bg-emerald-100 text-emerald-700",
@@ -9,7 +9,44 @@ const statusColors: Record<string, string> = {
 };
 
 export default function FinancePage() {
+  const { financeData, students, recordPayment } = useSchoolData();
   const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "fees">("overview");
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    studentId: "",
+    studentName: "",
+    amount: "",
+    method: "Tuition",
+    date: new Date().toISOString().slice(0, 10),
+  });
+
+  const handleStudentChange = (studentId: string) => {
+    const student = students.find((entry) => entry.id === studentId);
+    setForm((prev) => ({
+      ...prev,
+      studentId,
+      studentName: student?.name ?? "",
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!form.studentId || !form.amount) return;
+    setSubmitting(true);
+    try {
+      await recordPayment(form);
+      setForm({
+        studentId: "",
+        studentName: "",
+        amount: "",
+        method: "Tuition",
+        date: new Date().toISOString().slice(0, 10),
+      });
+      setShowModal(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <AppLayout title="Finance" subtitle="Track revenue, fees, and financial health">
@@ -108,7 +145,7 @@ export default function FinancePage() {
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <p className="font-semibold text-slate-800 text-sm">Recent Transactions</p>
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-semibold cursor-pointer whitespace-nowrap hover:bg-teal-700 transition-all">
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-semibold cursor-pointer whitespace-nowrap hover:bg-teal-700 transition-all">
               <i className="ri-add-line text-sm"></i>
               Record Payment
             </button>
@@ -163,6 +200,46 @@ export default function FinancePage() {
                 <p className="text-xs text-slate-500 mt-1.5">GH₵{item.collected.toLocaleString()} collected</p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <p className="font-bold text-slate-800">Record Payment</p>
+              <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Student</label>
+                <select value={form.studentId} onChange={(e) => handleStudentChange(e.target.value)} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50">
+                  <option value="">Select a student</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>{student.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Amount</label>
+                <input value={form.amount} onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))} type="number" placeholder="e.g. 2000" className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Payment Type</label>
+                <input value={form.method} onChange={(e) => setForm((prev) => ({ ...prev, method: e.target.value }))} type="text" placeholder="e.g. Tuition" className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Date</label>
+                <input value={form.date} onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))} type="date" className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50" />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600">Cancel</button>
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold disabled:opacity-50">{submitting ? "Saving..." : "Save Payment"}</button>
+            </div>
           </div>
         </div>
       )}

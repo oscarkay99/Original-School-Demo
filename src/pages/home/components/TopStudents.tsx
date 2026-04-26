@@ -1,12 +1,9 @@
-const performers = [
-  { rank: 1, initials: "AF", name: "Abena Frimpong", class: "JHS 3A", score: 95, gradient: "from-violet-500 to-fuchsia-500", rankColor: "text-amber-500" },
-  { rank: 2, initials: "EM", name: "Efua Mensah", class: "JHS 1A", score: 92.1, gradient: "from-emerald-500 to-teal-500", rankColor: "text-slate-400" },
-  { rank: 3, initials: "AA", name: "Adwoa Adjei", class: "JHS 1A", score: 89.7, gradient: "from-amber-500 to-orange-500", rankColor: "text-orange-400" },
-  { rank: 4, initials: "KT", name: "Kwame Tetteh", class: "JHS 2B", score: 87.3, gradient: "from-sky-500 to-blue-500", rankColor: "text-slate-300" },
-  { rank: 5, initials: "AO", name: "Ama Owusu", class: "JHS 3B", score: 85.9, gradient: "from-rose-500 to-pink-500", rankColor: "text-slate-300" },
-];
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { useNavigate } from "react-router-dom";
 
 export default function TopStudents() {
+  const navigate = useNavigate();
+  const { topStudents: performers } = useSchoolData();
   return (
     <div className="bg-white rounded-2xl p-6">
       <div className="flex items-center justify-between mb-5">
@@ -23,6 +20,7 @@ export default function TopStudents() {
         {performers.map((p) => (
           <div
             key={p.rank}
+            onClick={() => navigate("/students")}
             className="flex items-center gap-4 p-3 rounded-xl bg-slate-50 hover:bg-violet-50 transition-all cursor-pointer group"
           >
             <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">

@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-
-const grades = [
-  { label: "A (80–100)", count: 5, color: "#8b5cf6", light: "bg-violet-500" },
-  { label: "B (70–79)", count: 4, color: "#f59e0b", light: "bg-amber-400" },
-  { label: "C (60–69)", count: 2, color: "#10b981", light: "bg-emerald-500" },
-  { label: "D (50–59)", count: 1, color: "#f43f5e", light: "bg-rose-500" },
-];
-const total = grades.reduce((a, g) => a + g.count, 0);
+import { useNavigate } from "react-router-dom";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 export default function GradeDistribution() {
+  const navigate = useNavigate();
+  const { gradeDistribution: grades } = useSchoolData();
+  const total = grades.reduce((a, g) => a + g.count, 0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -71,6 +68,7 @@ export default function GradeDistribution() {
         <canvas
           ref={canvasRef}
           className="w-36 h-36 flex-shrink-0 cursor-pointer"
+          onClick={() => navigate("/grades")}
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left - 72;
@@ -93,6 +91,7 @@ export default function GradeDistribution() {
             <div
               key={g.label}
               className={`flex items-center gap-2.5 cursor-pointer rounded-lg p-1.5 transition-all ${hovered === i ? "bg-slate-50" : ""}`}
+              onClick={() => navigate("/grades")}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
             >

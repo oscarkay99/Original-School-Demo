@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { canAccessRoute, normalizeRole } from "@/lib/access";
 
 interface NavItem {
   label: string;
@@ -27,6 +29,7 @@ const navSections: NavSection[] = [
     items: [
       { label: "Students", icon: "ri-user-3-line", path: "/students" },
       { label: "Teachers", icon: "ri-user-star-line", path: "/teachers" },
+      { label: "Parents", icon: "ri-parent-line", path: "/parents" },
       { label: "Classes", icon: "ri-building-4-line", path: "/classes" },
       { label: "Timetable", icon: "ri-time-line", path: "/timetable" },
       { label: "Homework", icon: "ri-book-2-line", path: "/homework" },
@@ -68,6 +71,14 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate();
+  const { currentUserRole, currentUserName } = useSchoolData();
+  const role = normalizeRole(currentUserRole);
+  const initials = currentUserName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "U";
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     OVERVIEW: true,
     ACADEMIC: true,
@@ -124,6 +135,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 scrollbar-hide">
         {navSections.map((section) => {
+          const visibleItems = section.items.filter((item) => canAccessRoute(role, item.path));
+          if (!visibleItems.length) return null;
           const isExpanded = expandedSections[section.title] !== false;
           return (
             <div key={section.title} className="mb-1">
@@ -140,7 +153,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
               {(isExpanded || collapsed) && (
                 <div className={`${collapsed ? "px-2" : "px-2"} space-y-0.5`}>
-                  {section.items.map((item) => (
+                  {visibleItems.map((item) => (
                     <NavLink
                       key={item.path}
                       to={item.path}
@@ -193,17 +206,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className={`border-t border-white/[0.07] flex-shrink-0 ${collapsed ? "p-2" : "p-3"}`}>
         <div
           className={`flex items-center gap-2.5 rounded-lg hover:bg-white/[0.06] cursor-pointer transition-all ${collapsed ? "p-2 justify-center" : "p-2"}`}
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate(canAccessRoute(role, "/settings") ? "/settings" : "/")}
         >
           <div className="w-8 h-8 flex items-center justify-center rounded-full bg-violet-600 flex-shrink-0">
-            <span className="text-white text-xs font-bold">ON</span>
+            <span className="text-white text-xs font-bold">{initials}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-white text-xs font-semibold truncate">Oscar Nyavor</p>
+              <p className="text-white text-xs font-semibold truncate">{currentUserName}</p>
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                <p className="text-white/35 text-[10px] truncate">Administrator · Online</p>
+                <p className="text-white/35 text-[10px] truncate">{role} · Online</p>
               </div>
             </div>
           )}

@@ -1,22 +1,41 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { students } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { downloadCsv, openPrintWindow } from "@/lib/download";
 
 const avatarColors = ["bg-teal-600", "bg-slate-600", "bg-stone-500", "bg-cyan-700", "bg-slate-700", "bg-teal-700", "bg-slate-500"];
 
 export default function IDCardsPage() {
-  const [selected, setSelected] = useState<number[]>([]);
+  const { students } = useSchoolData();
+  const [selected, setSelected] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [previewStudent, setPreviewStudent] = useState<typeof students[0] | null>(null);
 
   const filtered = students.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()));
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
   const selectAll = () => {
     setSelected(filtered.length === selected.length ? [] : filtered.map((s) => s.id));
+  };
+
+  const printCards = (studentIds: string[]) => {
+    const chosen = students.filter((student) => studentIds.includes(student.id));
+    openPrintWindow(
+      "Student ID Cards",
+      `<h1>Student ID Cards</h1><p class="meta">${chosen.length} selected</p><table><thead><tr><th>Name</th><th>Class</th><th>Parent</th><th>ID</th></tr></thead><tbody>${chosen.map((student) => `<tr><td>${student.name}</td><td>${student.grade}</td><td>${student.parent}</td><td>EDU-2025-${String(student.id).padStart(4, "0")}</td></tr>`).join("")}</tbody></table>`,
+    );
+  };
+
+  const downloadCards = (studentIds: string[]) => {
+    const chosen = students.filter((student) => studentIds.includes(student.id));
+    downloadCsv(
+      "student-id-cards.csv",
+      ["Name", "Class", "Parent", "Student ID"],
+      chosen.map((student) => [student.name, student.grade, student.parent, `EDU-2025-${String(student.id).padStart(4, "0")}`]),
+    );
   };
 
   return (
@@ -46,6 +65,7 @@ export default function IDCardsPage() {
         <div className="flex items-center gap-2">
           <button
             disabled={selected.length === 0}
+            onClick={() => printCards(selected)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200 cursor-pointer whitespace-nowrap transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <i className="ri-printer-line text-sm"></i>
@@ -53,6 +73,7 @@ export default function IDCardsPage() {
           </button>
           <button
             disabled={selected.length === 0}
+            onClick={() => downloadCards(selected)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <i className="ri-download-line text-sm"></i>
@@ -163,8 +184,8 @@ export default function IDCardsPage() {
               </div>
             </div>
             <div className="px-5 pb-5 flex gap-3">
-              <button className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer whitespace-nowrap">Print</button>
-              <button className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap">Download</button>
+              <button onClick={() => printCards([previewStudent.id])} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer whitespace-nowrap">Print</button>
+              <button onClick={() => downloadCards([previewStudent.id])} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap">Download</button>
             </div>
           </div>
         </div>

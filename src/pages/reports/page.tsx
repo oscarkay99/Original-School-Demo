@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { students, attendanceData, financeData } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { downloadCsv } from "@/lib/download";
 
 const reportTypes = [
   { id: "academic", label: "Academic Performance", icon: "ri-bar-chart-2-line", gradient: "from-slate-500 to-slate-600", desc: "GPA trends, subject performance, top performers" },
@@ -10,9 +11,45 @@ const reportTypes = [
 ];
 
 export default function ReportsPage() {
+  const { students, attendanceData, financeData, inventoryItems } = useSchoolData();
   const [activeReport, setActiveReport] = useState("academic");
   const avgGpa = (students.reduce((a, b) => a + b.gpa, 0) / students.length).toFixed(2);
   const avgAttendance = Math.round(students.reduce((a, b) => a + b.attendance, 0) / students.length);
+
+  const exportActiveReport = () => {
+    if (activeReport === "academic") {
+      downloadCsv(
+        "academic-report.csv",
+        ["Student", "Grade", "GPA", "Attendance"],
+        [...students].sort((a, b) => b.gpa - a.gpa).map((s) => [s.name, s.grade, s.gpa, `${s.attendance}%`]),
+      );
+      return;
+    }
+
+    if (activeReport === "attendance") {
+      downloadCsv(
+        "attendance-report.csv",
+        ["Date", "Present", "Absent", "Late", "Total"],
+        attendanceData.map((d) => [d.date, d.present, d.absent, d.late, d.total]),
+      );
+      return;
+    }
+
+    if (activeReport === "finance") {
+      downloadCsv(
+        "finance-report.csv",
+        ["Category", "Collected", "Target", "Percentage"],
+        financeData.feeBreakdown.map((item) => [item.category, item.collected, item.amount, `${item.percentage}%`]),
+      );
+      return;
+    }
+
+    downloadCsv(
+      "inventory-report.csv",
+      ["Item", "Category", "Quantity", "Min Stock", "Status", "Value"],
+      inventoryItems.map((item) => [item.name, item.category, item.quantity, item.minStock, item.status, item.value]),
+    );
+  };
 
   return (
     <AppLayout title="Reports" subtitle="Generate and view comprehensive school reports">
@@ -44,7 +81,7 @@ export default function ReportsPage() {
           <div className="bg-white rounded-2xl border border-slate-100 p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="font-semibold text-slate-800 text-sm">GPA Distribution</p>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 text-violet-600 text-xs font-medium cursor-pointer">
+              <button onClick={exportActiveReport} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 text-violet-600 text-xs font-medium cursor-pointer">
                 <i className="ri-download-line text-sm"></i>Export
               </button>
             </div>
@@ -207,11 +244,11 @@ export default function ReportsPage() {
         <div className="bg-white rounded-2xl border border-slate-100 p-5">
           <p className="font-semibold text-slate-800 text-sm mb-4">Inventory Status Report</p>
           <div className="grid grid-cols-3 gap-4 mb-6">
-            {[
-              { label: "In Stock", count: 7, gradient: "from-teal-500 to-teal-600" },
-              { label: "Low Stock", count: 2, gradient: "from-slate-500 to-slate-600" },
-              { label: "Critical", count: 1, gradient: "from-slate-700 to-slate-800" },
-            ].map((s) => (
+              {[
+                { label: "In Stock", count: inventoryItems.filter((item) => item.status === "In Stock").length, gradient: "from-teal-500 to-teal-600" },
+                { label: "Low Stock", count: inventoryItems.filter((item) => item.status === "Low Stock").length, gradient: "from-slate-500 to-slate-600" },
+                { label: "Critical", count: inventoryItems.filter((item) => item.status === "Critical").length, gradient: "from-slate-700 to-slate-800" },
+              ].map((s) => (
               <div key={s.label} className={`rounded-xl p-4 text-center bg-gradient-to-br ${s.gradient}`}>
                 <p className="text-3xl font-bold text-white" style={{ fontFamily: "'Clash Display', sans-serif" }}>{s.count}</p>
                 <p className="text-white/80 text-xs mt-1">{s.label}</p>
@@ -220,7 +257,7 @@ export default function ReportsPage() {
           </div>
           <p className="text-xs text-slate-400 text-center">Detailed inventory report available for download</p>
           <div className="flex justify-center mt-3">
-            <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-semibold cursor-pointer hover:opacity-90 shadow-md">
+            <button onClick={exportActiveReport} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-semibold cursor-pointer hover:opacity-90 shadow-md">
               <i className="ri-download-line"></i>
               Download Full Report
             </button>

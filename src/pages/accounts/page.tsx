@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
+import { downloadCsv } from "@/lib/download";
 
 const accounts = [
   { id: 1, name: "Main School Account", bank: "Ghana Commercial Bank", accountNo: "****4521", balance: 45200, type: "Current", lastTx: "2026-04-22" },
@@ -28,9 +29,21 @@ const accountGradients = [
 
 export default function AccountsPage() {
   const [activeTab, setActiveTab] = useState<"accounts" | "transactions">("accounts");
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const totalBalance = accounts.reduce((a, b) => a + b.balance, 0);
   const totalCredits = transactions.filter((t) => t.type === "Credit").reduce((a, b) => a + b.amount, 0);
   const totalDebits = transactions.filter((t) => t.type === "Debit").reduce((a, b) => a + b.amount, 0);
+  const filteredTransactions = selectedAccount
+    ? transactions.filter((t) => t.account === selectedAccount)
+    : transactions;
+
+  const exportTransactions = () => {
+    downloadCsv(
+      "account-transactions.csv",
+      ["Ref", "Description", "Account", "Amount", "Type", "Date"],
+      filteredTransactions.map((t) => [t.ref, t.description, t.account, t.amount, t.type, t.date]),
+    );
+  };
 
   return (
     <AppLayout title="Accounts" subtitle="Bank accounts, balances and transaction ledger">
@@ -70,6 +83,10 @@ export default function AccountsPage() {
           {accounts.map((acc, i) => (
             <div
               key={acc.id}
+              onClick={() => {
+                setSelectedAccount(acc.name === "Fees Collection Account" ? "Fees Collection" : acc.name === "Main School Account" ? "Main School Account" : acc.name === "Payroll Account" ? "Payroll Account" : "Petty Cash");
+                setActiveTab("transactions");
+              }}
               className="rounded-2xl p-5 text-white relative overflow-hidden hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
               style={{ background: accountGradients[i % accountGradients.length] }}
             >
@@ -86,7 +103,16 @@ export default function AccountsPage() {
                 <p className="text-xs text-white/50 mb-4">Account: {acc.accountNo}</p>
                 <div className="flex items-center justify-between pt-3 border-t border-white/20">
                   <p className="text-xs text-white/50">Last tx: {acc.lastTx}</p>
-                  <button className="text-xs text-white font-semibold hover:text-white/80 cursor-pointer">View History</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAccount(acc.name === "Fees Collection Account" ? "Fees Collection" : acc.name === "Main School Account" ? "Main School Account" : acc.name === "Payroll Account" ? "Payroll Account" : "Petty Cash");
+                      setActiveTab("transactions");
+                    }}
+                    className="text-xs text-white font-semibold hover:text-white/80 cursor-pointer"
+                  >
+                    View History
+                  </button>
                 </div>
               </div>
             </div>
@@ -97,8 +123,11 @@ export default function AccountsPage() {
       {activeTab === "transactions" && (
         <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <p className="font-semibold text-slate-800 text-sm">Transaction Ledger</p>
-            <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">Transaction Ledger</p>
+              {selectedAccount && <p className="text-xs text-slate-400 mt-1">Filtered by {selectedAccount}</p>}
+            </div>
+            <button onClick={exportTransactions} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
               <i className="ri-download-line text-sm"></i>Export
             </button>
           </div>
@@ -112,7 +141,7 @@ export default function AccountsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {transactions.map((t) => (
+                {filteredTransactions.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-all">
                     <td className="px-4 py-3 text-xs font-mono text-slate-400">{t.ref}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{t.description}</td>

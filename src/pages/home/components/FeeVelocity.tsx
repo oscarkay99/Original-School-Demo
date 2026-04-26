@@ -1,14 +1,14 @@
 import { useEffect, useRef } from "react";
-
-const terms = [
-  { label: "Term 1", amount: "GH₵18,000", pct: 75 },
-  { label: "Term 2", amount: "GH₵14,500", pct: 60 },
-  { label: "Term 3", amount: "GH₵8,200", pct: 34 },
-];
-
-const COLLECTED_PCT = 57;
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 export default function FeeVelocity() {
+  const { financeData } = useSchoolData();
+  const terms = financeData.monthlyData.slice(0, 3).map((item, index) => ({
+    label: `Term ${index + 1}`,
+    amount: `GH₵${item.revenue.toLocaleString()}`,
+    pct: financeData.totalRevenue ? Math.round((item.revenue / financeData.totalRevenue) * 100) : 0,
+  }));
+  const COLLECTED_PCT = financeData.totalRevenue ? Math.round((financeData.collected / financeData.totalRevenue) * 100) : 0;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -104,11 +104,11 @@ export default function FeeVelocity() {
         <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
           <div>
             <p className="text-white/40 text-[10px] uppercase tracking-wider">Outstanding</p>
-            <p className="text-rose-400 font-bold text-base">GH₵16,250</p>
+            <p className="text-rose-400 font-bold text-base">GH₵{financeData.outstanding.toLocaleString()}</p>
           </div>
           <div className="text-right">
             <p className="text-white/40 text-[10px] uppercase tracking-wider">Total Target</p>
-            <p className="text-white font-bold text-base">GH₵72,000</p>
+            <p className="text-white font-bold text-base">GH₵{financeData.totalRevenue.toLocaleString()}</p>
           </div>
         </div>
       </div>

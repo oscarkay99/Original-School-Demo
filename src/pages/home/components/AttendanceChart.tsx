@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const monthlyData = [
   { month: "Sep", present: 88, absent: 8, late: 4 },
@@ -19,6 +20,7 @@ interface TooltipState {
 }
 
 export default function AttendanceChart() {
+  const navigate = useNavigate();
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, data: null });
   const [hovered, setHovered] = useState<number | null>(null);
   const maxVal = 100;
@@ -70,6 +72,7 @@ export default function AttendanceChart() {
             return (
               <div
                 key={i}
+                onClick={() => navigate("/attendance")}
                 className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer group"
                 onMouseEnter={(e) => handleMouseEnter(e, d, i)}
                 onMouseLeave={handleMouseLeave}

@@ -1,18 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-
-const allNotifications = [
-  { id: 1, title: "Overdue Fee Alert", message: "Kweku Asante has an outstanding fee of GH₵2,000 for Term 2 tuition. Payment is 14 days overdue.", time: "10 min ago", type: "Finance", read: false, priority: "High" },
-  { id: 2, title: "Overdue Fee Alert", message: "Esi Bonsu has an outstanding fee of GH₵2,000 for Term 2 tuition. Payment is 7 days overdue.", time: "25 min ago", type: "Finance", read: false, priority: "High" },
-  { id: 3, title: "Science Fair 2026 — 7 Days Away", message: "The Science Fair is scheduled for April 30 at 10:00 AM in the Science Block. 150 attendees expected.", time: "1 hr ago", type: "Event", read: false, priority: "Medium" },
-  { id: 4, title: "Low Inventory: Whiteboard Markers", message: "Whiteboard markers stock is at 5 units, below the minimum threshold of 10. Please reorder.", time: "2 hrs ago", type: "Inventory", read: false, priority: "Medium" },
-  { id: 5, title: "Parent-Teacher Conference Reminder", message: "Parent-Teacher Conference is on April 28 at 2:00 PM in the Assembly Hall. 80 parents expected.", time: "3 hrs ago", type: "Event", read: true, priority: "Low" },
-  { id: 6, title: "Attendance Alert: Yaw Frimpong", message: "Yaw Frimpong's attendance has dropped to 71%, below the 80% minimum threshold.", time: "5 hrs ago", type: "Attendance", read: true, priority: "High" },
-  { id: 7, title: "New Teacher Added", message: "Mrs. Comfort Nyarko has been added to the system as a French teacher for Grade 8A, 9B, and 10B.", time: "1 day ago", type: "System", read: true, priority: "Low" },
-  { id: 8, title: "Term 2 Report Cards Ready", message: "Term 2 report cards for all Grade 9 students are ready for review and distribution.", time: "2 days ago", type: "Academic", read: true, priority: "Medium" },
-  { id: 9, title: "Critical Stock: First Aid Kits", message: "First Aid Kits are critically low at 2 units. Minimum required is 5. Immediate reorder needed.", time: "2 days ago", type: "Inventory", read: true, priority: "High" },
-  { id: 10, title: "Scientific Calculators Low Stock", message: "Scientific calculators are at 12 units, below the minimum of 15. Consider reordering.", time: "3 days ago", type: "Inventory", read: true, priority: "Medium" },
-];
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 const typeConfig: Record<string, { icon: string; bg: string; text: string }> = {
   Finance: { icon: "ri-money-dollar-circle-line", bg: "bg-teal-50", text: "text-teal-600" },
@@ -30,11 +18,8 @@ const priorityConfig: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(allNotifications);
+  const { notifications, markAllNotificationsRead, markNotificationRead } = useSchoolData();
   const [filter, setFilter] = useState("All");
-
-  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  const markRead = (id: number) => setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
 
   const types = ["All", "Finance", "Event", "Inventory", "Attendance", "Academic", "System"];
   const filtered = notifications.filter((n) => filter === "All" || n.type === filter);
@@ -76,7 +61,7 @@ export default function NotificationsPage() {
           ))}
         </div>
         {unread > 0 && (
-          <button onClick={markAllRead} className="text-xs text-teal-600 font-medium hover:text-teal-700 cursor-pointer whitespace-nowrap">
+          <button onClick={() => void markAllNotificationsRead()} className="text-xs text-teal-600 font-medium hover:text-teal-700 cursor-pointer whitespace-nowrap">
             Mark all as read
           </button>
         )}
@@ -90,7 +75,7 @@ export default function NotificationsPage() {
             return (
               <div
                 key={n.id}
-                onClick={() => markRead(n.id)}
+                onClick={() => void markNotificationRead(n.id)}
                 className={`flex items-start gap-4 px-5 py-4 hover:bg-slate-50 cursor-pointer transition-all ${!n.read ? "bg-teal-50/30" : ""}`}
               >
                 <div className={`w-10 h-10 flex items-center justify-center rounded-xl ${cfg.bg} flex-shrink-0 mt-0.5`}>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
+import { openPrintWindow } from "@/lib/download";
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const periods = [
@@ -45,6 +46,30 @@ export default function TimetablePage() {
   const classes = ["Grade 8A", "Grade 8B", "Grade 8C", "Grade 9A", "Grade 9B", "Grade 9C", "Grade 10A", "Grade 10B", "Grade 10C", "Grade 11A", "Grade 11B", "Grade 11C"];
   const today = new Date().toLocaleDateString("en", { weekday: "long" });
 
+  const exportTimetable = () => {
+    const rows = periods
+      .map((p) => {
+        const cells = days
+          .map((day) => {
+            const cell = timetableData[p.label]?.[day];
+            return `<td>${cell ? `${cell.subject}<br/><span style="color:#64748b">${cell.teacher} · ${cell.room}</span>` : p.label === "Break" || p.label === "Lunch" ? p.label : "-"}</td>`;
+          })
+          .join("");
+        return `<tr><td><strong>${p.label}</strong><br/><span style="color:#64748b">${p.time}</span></td>${cells}</tr>`;
+      })
+      .join("");
+
+    openPrintWindow(
+      `${selectedClass} Timetable`,
+      `<h1>${selectedClass} Timetable</h1>
+       <p class="meta">Academic Year 2025/26 · Term 2</p>
+       <table>
+         <thead><tr><th>Time</th>${days.map((d) => `<th>${d}</th>`).join("")}</tr></thead>
+         <tbody>${rows}</tbody>
+       </table>`,
+    );
+  };
+
   return (
     <AppLayout title="Timetable" subtitle="Class schedules and period management">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
@@ -60,7 +85,7 @@ export default function TimetablePage() {
             Academic Year 2025/26 · Term 2
           </span>
         </div>
-        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
+        <button onClick={exportTimetable} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold cursor-pointer whitespace-nowrap transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
           <i className="ri-download-line text-sm"></i>Export PDF
         </button>
       </div>

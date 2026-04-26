@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { students } from "@/mocks/schoolData";
 
 export default function FeeStatusDonut() {
+  const navigate = useNavigate();
   const paid = students.filter((s) => s.fees === "Paid").length;
   const pending = students.filter((s) => s.fees === "Pending").length;
   const overdue = students.filter((s) => s.fees === "Overdue").length;
@@ -62,6 +64,7 @@ export default function FeeStatusDonut() {
                 strokeDashoffset={-arc.offset + circumference * 0.25}
                 strokeLinecap="round"
                 style={{ transition: "stroke-width 0.2s", cursor: "pointer", opacity: hovered !== null && hovered !== arc.index ? 0.4 : 1 }}
+                onClick={() => navigate("/finance")}
                 onMouseEnter={() => setHovered(arc.index)}
                 onMouseLeave={() => setHovered(null)}
               />
@@ -80,6 +83,7 @@ export default function FeeStatusDonut() {
             <div
               key={seg.label}
               className="flex items-center gap-2 cursor-pointer group"
+              onClick={() => navigate("/finance")}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
             >

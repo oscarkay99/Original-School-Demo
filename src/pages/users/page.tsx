@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { users } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 const roleConfig: Record<string, { gradient: string; bg: string; text: string }> = {
   Admin: { gradient: "from-slate-600 to-slate-700", bg: "bg-slate-100", text: "text-slate-700" },
@@ -10,14 +10,38 @@ const roleConfig: Record<string, { gradient: string; bg: string; text: string }>
 };
 
 export default function UsersPage() {
+  const { users, addUser } = useSchoolData();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [removedUserIds, setRemovedUserIds] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    role: "Teacher",
+  });
 
-  const filtered = users.filter(
+  const workingUsers = users.filter((user) => !removedUserIds.includes(user.id));
+  const filtered = workingUsers.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.role.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleSubmit = async () => {
+    if (!form.fullName || !form.email) return;
+    setSubmitting(true);
+    try {
+      await addUser(form);
+      setForm({ fullName: "", email: "", role: "Teacher" });
+      setShowModal(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedUser = workingUsers.find((user) => user.id === selectedUserId) ?? null;
 
   return (
     <AppLayout title="Users" subtitle="Manage system users and access control">
@@ -90,8 +114,8 @@ export default function UsersPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
-                <button className="flex-1 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-medium cursor-pointer transition-all">Edit</button>
-                <button className="flex-1 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-500 text-xs font-medium cursor-pointer transition-all">Remove</button>
+                <button onClick={() => setSelectedUserId(user.id)} className="flex-1 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-medium cursor-pointer transition-all">View</button>
+                <button onClick={() => setRemovedUserIds((prev) => [...prev, user.id])} className="flex-1 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-500 text-xs font-medium cursor-pointer transition-all">Remove</button>
               </div>
             </div>
           );
@@ -109,28 +133,51 @@ export default function UsersPage() {
             </div>
             <div className="p-6 space-y-4">
               {[
-                { label: "Full Name", placeholder: "e.g. Kwame Asante", type: "text" },
-                { label: "Email Address", placeholder: "user@school.edu", type: "email" },
+                { key: "fullName", label: "Full Name", placeholder: "e.g. Kwame Asante", type: "text" },
+                { key: "email", label: "Email Address", placeholder: "user@school.edu", type: "email" },
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">{f.label}</label>
-                  <input type={f.type} placeholder={f.placeholder} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-300 transition-all bg-slate-50 focus:bg-white" />
+                  <input type={f.type} value={form[f.key as keyof typeof form]} onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-300 transition-all bg-slate-50 focus:bg-white" />
                 </div>
               ))}
               <div>
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Role</label>
-                <select className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-300 transition-all bg-slate-50 cursor-pointer">
+                <select value={form.role} onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))} className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-300 transition-all bg-slate-50 cursor-pointer">
                   {Object.keys(roleConfig).map((r) => <option key={r}>{r}</option>)}
                 </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-600 block mb-1">Temporary Password</label>
-                <input type="password" placeholder="Set initial password" className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-cyan-300 transition-all bg-slate-50 focus:bg-white" />
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer whitespace-nowrap">Cancel</button>
-              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap">Add User</button>
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap disabled:opacity-50">{submitting ? "Saving..." : "Add User"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <p className="font-bold text-slate-800">User Details</p>
+              <button onClick={() => setSelectedUserId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 space-y-3">
+              {[
+                ["Name", selectedUser.name],
+                ["Role", selectedUser.role],
+                ["Email", selectedUser.email],
+                ["Status", selectedUser.status],
+                ["Last Login", selectedUser.lastLogin],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400">{label}</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-1">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

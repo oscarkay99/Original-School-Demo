@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import AppLayout from "@/components/feature/AppLayout";
-import { students } from "@/mocks/schoolData";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
 
 const statusColors: Record<string, string> = {
   Active: "bg-emerald-100 text-emerald-700",
@@ -23,17 +23,77 @@ const avatarGradients = [
 ];
 
 export default function StudentsPage() {
+  const { students, addStudent, updateStudent, users } = useSchoolData();
+  const parentUsers = users.filter((u) => u.role === "Parent");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterFee, setFilterFee] = useState("All");
   const [showModal, setShowModal] = useState(false);
+  const [viewStudentId, setViewStudentId] = useState<string | null>(null);
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [removedStudentIds, setRemovedStudentIds] = useState<string[]>([]);
+  const [editedStudents, setEditedStudents] = useState<Record<string, { name: string; parent: string; grade: string; email: string; guardianEmail: string }>>({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [parentNameDropdownOpen, setParentNameDropdownOpen] = useState(false);
+  const [parentEmailDropdownOpen, setParentEmailDropdownOpen] = useState(false);
+  const [editParentDropdownOpen, setEditParentDropdownOpen] = useState(false);
+  const parentNameRef = useRef<HTMLDivElement>(null);
+  const parentEmailRef = useRef<HTMLDivElement>(null);
+  const editParentRef = useRef<HTMLDivElement>(null);
 
-  const filtered = students.filter((s) => {
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (parentNameRef.current && !parentNameRef.current.contains(e.target as Node)) {
+        setParentNameDropdownOpen(false);
+      }
+      if (parentEmailRef.current && !parentEmailRef.current.contains(e.target as Node)) {
+        setParentEmailDropdownOpen(false);
+      }
+      if (editParentRef.current && !editParentRef.current.contains(e.target as Node)) {
+        setEditParentDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  const [form, setForm] = useState({
+    fullName: "",
+    dob: "",
+    grade: "",
+    parent: "",
+    email: "",
+    guardianEmail: "",
+  });
+
+  const workingStudents = students
+    .filter((s) => !removedStudentIds.includes(s.id))
+    .map((s) => {
+      const edited = editedStudents[s.id];
+      return edited ? { ...s, name: edited.name, parent: edited.parent, grade: edited.grade, email: edited.email, guardianEmail: edited.guardianEmail ?? s.guardianEmail } : s;
+    });
+
+  const filtered = workingStudents.filter((s) => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.grade.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "All" || s.status === filterStatus;
     const matchFee = filterFee === "All" || s.fees === filterFee;
     return matchSearch && matchStatus && matchFee;
   });
+
+  const handleSubmit = async () => {
+    if (!form.fullName || !form.dob || !form.grade || !form.parent) return;
+    setSubmitting(true);
+    try {
+      await addStudent(form);
+      setForm({ fullName: "", dob: "", grade: "", parent: "", email: "", guardianEmail: "" });
+      setShowModal(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const viewedStudent = workingStudents.find((student) => student.id === viewStudentId) ?? null;
+  const editingStudent = workingStudents.find((student) => student.id === editingStudentId) ?? null;
 
   return (
     <AppLayout title="Student Management" subtitle="Manage all enrolled students">
@@ -149,13 +209,13 @@ export default function StudentsPage() {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 cursor-pointer transition-all">
+                      <button onClick={() => setViewStudentId(s.id)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 cursor-pointer transition-all">
                         <i className="ri-eye-line text-sm"></i>
                       </button>
-                      <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 cursor-pointer transition-all">
+                      <button onClick={() => setEditingStudentId(s.id)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 cursor-pointer transition-all">
                         <i className="ri-edit-line text-sm"></i>
                       </button>
-                      <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-500 cursor-pointer transition-all">
+                      <button onClick={() => setRemovedStudentIds((prev) => [...prev, s.id])} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-500 cursor-pointer transition-all">
                         <i className="ri-delete-bin-line text-sm"></i>
                       </button>
                     </div>
@@ -166,15 +226,15 @@ export default function StudentsPage() {
           </table>
         </div>
         <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
-          <p className="text-xs text-slate-400">Showing {filtered.length} of {students.length} students</p>
+          <p className="text-xs text-slate-400">Showing {filtered.length} of {workingStudents.length} students</p>
           <div className="flex items-center gap-1">
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer text-xs">
+            <span className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-300 text-xs">
               <i className="ri-arrow-left-s-line"></i>
-            </button>
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-500 text-white text-xs font-semibold cursor-pointer">1</button>
-            <button className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer text-xs">
+            </span>
+            <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-500 text-white text-xs font-semibold">1</span>
+            <span className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 text-slate-300 text-xs">
               <i className="ri-arrow-right-s-line"></i>
-            </button>
+            </span>
           </div>
         </div>
       </div>
@@ -191,28 +251,352 @@ export default function StudentsPage() {
             </div>
             <div className="p-6 space-y-4">
               {[
-                { label: "Full Name", placeholder: "e.g. Ama Owusu", type: "text" },
-                { label: "Date of Birth", placeholder: "", type: "date" },
-                { label: "Grade / Class", placeholder: "e.g. Grade 9A", type: "text" },
-                { label: "Parent / Guardian", placeholder: "e.g. Kwame Owusu", type: "text" },
-                { label: "Phone Number", placeholder: "+233 24 000 0000", type: "tel" },
+                { key: "fullName", label: "Full Name", placeholder: "e.g. Ama Owusu", type: "text" },
+                { key: "dob", label: "Date of Birth", placeholder: "", type: "date" },
+                { key: "grade", label: "Grade / Class", placeholder: "e.g. Grade 9A", type: "text" },
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-xs font-semibold text-slate-600 block mb-1">{f.label}</label>
                   <input
                     type={f.type}
+                    value={form[f.key as keyof typeof form]}
+                    onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
                     className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-300 transition-all bg-slate-50 focus:bg-white"
                   />
                 </div>
               ))}
+
+              {/* Parent / Guardian Name — combobox */}
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Parent / Guardian Name</label>
+                <div ref={parentNameRef} className="relative">
+                  <input
+                    type="text"
+                    value={form.parent}
+                    onChange={(e) => {
+                      setForm((prev) => ({ ...prev, parent: e.target.value }));
+                      setParentNameDropdownOpen(true);
+                    }}
+                    onFocus={() => setParentNameDropdownOpen(true)}
+                    placeholder="Type to search parents..."
+                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-300 transition-all bg-slate-50 focus:bg-white"
+                  />
+                  {parentNameDropdownOpen && (() => {
+                    const q = form.parent.toLowerCase();
+                    const matches = parentUsers.filter(
+                      (p) => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+                    );
+                    if (matches.length === 0) return null;
+                    return (
+                      <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+                        {matches.map((p) => (
+                          <li
+                            key={p.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setForm((prev) => ({
+                                ...prev,
+                                parent: p.name,
+                                guardianEmail: prev.guardianEmail || p.email,
+                              }));
+                              setParentNameDropdownOpen(false);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-violet-600 text-xs font-bold">{p.avatar}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 truncate">{p.name}</p>
+                              <p className="text-[11px] text-slate-400 truncate">{p.email}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {[
+                { key: "email", label: "Student Email (optional)", placeholder: "student@school.edu", type: "email" },
+              ].map((f) => (
+                <div key={f.label}>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">{f.label}</label>
+                  <input
+                    type={f.type}
+                    value={form[f.key as keyof typeof form]}
+                    onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    placeholder={f.placeholder}
+                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-300 transition-all bg-slate-50 focus:bg-white"
+                  />
+                </div>
+              ))}
+
+              {/* Link to parent account */}
+              <div className="rounded-xl border border-violet-100 bg-violet-50 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <i className="ri-parent-line text-violet-500 text-sm"></i>
+                  <p className="text-xs font-bold text-violet-700">Link Parent Account</p>
+                </div>
+                <p className="text-[11px] text-violet-500 leading-relaxed">
+                  Start typing to find an existing parent account. The parent will see this student when they log in.
+                </p>
+                <div ref={parentEmailRef} className="relative">
+                  <input
+                    type="text"
+                    value={form.guardianEmail}
+                    onChange={(e) => {
+                      setForm((prev) => ({ ...prev, guardianEmail: e.target.value }));
+                      setParentEmailDropdownOpen(true);
+                    }}
+                    onFocus={() => setParentEmailDropdownOpen(true)}
+                    placeholder="Search by name or email..."
+                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-violet-200 focus:outline-none focus:border-violet-400 transition-all bg-white"
+                  />
+                  {parentEmailDropdownOpen && (() => {
+                    const q = form.guardianEmail.toLowerCase();
+                    const matches = parentUsers.filter(
+                      (p) => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+                    );
+                    if (matches.length === 0) return null;
+                    return (
+                      <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-violet-100 rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+                        {matches.map((p) => (
+                          <li
+                            key={p.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setForm((prev) => ({
+                                ...prev,
+                                guardianEmail: p.email,
+                                parent: prev.parent || p.name,
+                              }));
+                              setParentEmailDropdownOpen(false);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-violet-50 cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-violet-600 text-xs font-bold">{p.avatar}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 truncate">{p.name}</p>
+                              <p className="text-[11px] text-slate-400 truncate">{p.email}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </div>
+                {form.guardianEmail && (
+                  <p className="text-[11px] text-violet-500 flex items-center gap-1">
+                    <i className="ri-link text-violet-400"></i>
+                    Will be linked to: <span className="font-semibold">{form.guardianEmail}</span>
+                  </p>
+                )}
+              </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
               <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-all whitespace-nowrap">
                 Cancel
               </button>
-              <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold hover:opacity-90 cursor-pointer transition-all whitespace-nowrap shadow-md">
-                Add Student
+              <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold hover:opacity-90 cursor-pointer transition-all whitespace-nowrap shadow-md disabled:opacity-50">
+                {submitting ? "Saving..." : "Add Student"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewedStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <p className="font-bold text-slate-800">Student Profile</p>
+              <button onClick={() => setViewStudentId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-2 gap-3">
+              {[
+                ["Name", viewedStudent.name],
+                ["Class", viewedStudent.grade],
+                ["Parent", viewedStudent.parent],
+                ["Email", viewedStudent.email || "—"],
+                ["Attendance", `${viewedStudent.attendance}%`],
+                ["GPA", viewedStudent.gpa],
+                ["Fees", viewedStudent.fees],
+                ["Status", viewedStudent.status],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-xs text-slate-400">{label}</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-1">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <p className="font-bold text-slate-800">Edit Student</p>
+              <button onClick={() => setEditingStudentId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
+                <i className="ri-close-line text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {[
+                ["name", "Full Name", editingStudent.name],
+                ["grade", "Grade / Class", editingStudent.grade],
+              ].map(([key, label, value]) => (
+                <div key={String(key)}>
+                  <label className="text-xs font-semibold text-slate-600 block mb-1">{label}</label>
+                  <input
+                    type="text"
+                    value={(editedStudents[editingStudent.id]?.[key as "name" | "grade"] ?? value) as string}
+                    onChange={(e) =>
+                      setEditedStudents((prev) => ({
+                        ...prev,
+                        [editingStudent.id]: {
+                          name: prev[editingStudent.id]?.name ?? editingStudent.name,
+                          parent: prev[editingStudent.id]?.parent ?? editingStudent.parent,
+                          grade: prev[editingStudent.id]?.grade ?? editingStudent.grade,
+                          email: prev[editingStudent.id]?.email ?? editingStudent.email,
+                          [key]: e.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-300 transition-all bg-slate-50"
+                  />
+                </div>
+              ))}
+
+              {/* Parent / Guardian — combobox */}
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Parent / Guardian</label>
+                <div ref={editParentRef} className="relative">
+                  <input
+                    type="text"
+                    value={editedStudents[editingStudent.id]?.parent ?? editingStudent.parent}
+                    onChange={(e) => {
+                      setEditedStudents((prev) => ({
+                        ...prev,
+                        [editingStudent.id]: {
+                          name: prev[editingStudent.id]?.name ?? editingStudent.name,
+                          parent: e.target.value,
+                          grade: prev[editingStudent.id]?.grade ?? editingStudent.grade,
+                          email: prev[editingStudent.id]?.email ?? editingStudent.email,
+                          guardianEmail: prev[editingStudent.id]?.guardianEmail ?? editingStudent.guardianEmail,
+                        },
+                      }));
+                      setEditParentDropdownOpen(true);
+                    }}
+                    onFocus={() => setEditParentDropdownOpen(true)}
+                    placeholder="Type to search parents..."
+                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-300 transition-all bg-slate-50"
+                  />
+                  {editParentDropdownOpen && (() => {
+                    const q = (editedStudents[editingStudent.id]?.parent ?? editingStudent.parent).toLowerCase();
+                    const matches = parentUsers.filter(
+                      (p) => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q)
+                    );
+                    if (matches.length === 0) return null;
+                    return (
+                      <ul className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+                        {matches.map((p) => (
+                          <li
+                            key={p.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setEditedStudents((prev) => ({
+                                ...prev,
+                                [editingStudent.id]: {
+                                  name: prev[editingStudent.id]?.name ?? editingStudent.name,
+                                  parent: p.name,
+                                  grade: prev[editingStudent.id]?.grade ?? editingStudent.grade,
+                                  email: prev[editingStudent.id]?.email ?? editingStudent.email,
+                                  guardianEmail: p.email,
+                                },
+                              }));
+                              setEditParentDropdownOpen(false);
+                            }}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 cursor-pointer"
+                          >
+                            <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-violet-600 text-xs font-bold">{p.avatar}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-800 truncate">{p.name}</p>
+                              <p className="text-[11px] text-slate-400 truncate">{p.email}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </div>
+                {/* Show currently linked email */}
+                {(() => {
+                  const linkedEmail = editedStudents[editingStudent.id]?.guardianEmail ?? editingStudent.guardianEmail;
+                  return linkedEmail ? (
+                    <p className="text-[11px] text-violet-500 flex items-center gap-1 mt-1">
+                      <i className="ri-link text-violet-400"></i>
+                      Linked: <span className="font-semibold">{linkedEmail}</span>
+                    </p>
+                  ) : null;
+                })()}
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-600 block mb-1">Student Email</label>
+                <input
+                  type="text"
+                  value={editedStudents[editingStudent.id]?.email ?? editingStudent.email}
+                  onChange={(e) =>
+                    setEditedStudents((prev) => ({
+                      ...prev,
+                      [editingStudent.id]: {
+                        name: prev[editingStudent.id]?.name ?? editingStudent.name,
+                        parent: prev[editingStudent.id]?.parent ?? editingStudent.parent,
+                        grade: prev[editingStudent.id]?.grade ?? editingStudent.grade,
+                        email: e.target.value,
+                        guardianEmail: prev[editingStudent.id]?.guardianEmail ?? editingStudent.guardianEmail,
+                      },
+                    }))
+                  }
+                  className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-300 transition-all bg-slate-50"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
+              <button onClick={() => setEditingStudentId(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer transition-all whitespace-nowrap">Close</button>
+              <button
+                disabled={editSaving}
+                onClick={async () => {
+                  const edits = editedStudents[editingStudent.id];
+                  if (!edits) { setEditingStudentId(null); return; }
+                  setEditSaving(true);
+                  try {
+                    await updateStudent(editingStudent.id, {
+                      name: edits.name,
+                      grade: edits.grade,
+                      parent: edits.parent,
+                      email: edits.email,
+                      guardianEmail: edits.guardianEmail,
+                    });
+                    setEditingStudentId(null);
+                  } finally {
+                    setEditSaving(false);
+                  }
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 cursor-pointer transition-all whitespace-nowrap disabled:opacity-50"
+              >
+                {editSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>

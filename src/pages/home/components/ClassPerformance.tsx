@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const classData = [
   { name: "Grade 8A", avg: 87, students: 32, teacher: "Mrs. Asiedu", trend: "up" },
@@ -17,6 +18,7 @@ interface TooltipState {
 }
 
 export default function ClassPerformance() {
+  const navigate = useNavigate();
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, item: null });
   const maxAvg = 100;
 
@@ -51,6 +53,7 @@ export default function ClassPerformance() {
             return (
               <div
                 key={i}
+                onClick={() => navigate("/classes")}
                 className="flex-1 flex flex-col items-center gap-1 cursor-pointer group"
                 onMouseEnter={(e) => handleMouseEnter(e, item)}
                 onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}

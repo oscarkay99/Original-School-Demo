@@ -1,5 +1,8 @@
 import type { RouteObject } from "react-router-dom";
+import ProtectedRoute from "../components/feature/ProtectedRoute";
+import { routeAccess } from "@/lib/access";
 import NotFound from "../pages/NotFound";
+import LoginPage from "../pages/login/page";
 import Home from "../pages/home/page";
 import StudentsPage from "../pages/students/page";
 import TeachersPage from "../pages/teachers/page";
@@ -20,28 +23,35 @@ import IDCardsPage from "../pages/id-cards/page";
 import NotificationsPage from "../pages/notifications/page";
 import HRPayrollPage from "../pages/hr-payroll/page";
 import AccountsPage from "../pages/accounts/page";
+import ParentsPage from "../pages/parents/page";
+
+function protect(path: string, element: React.ReactNode) {
+  return <ProtectedRoute allowedRoles={routeAccess[path]}>{element}</ProtectedRoute>;
+}
 
 const routes: RouteObject[] = [
-  { path: "/", element: <Home /> },
-  { path: "/students", element: <StudentsPage /> },
-  { path: "/teachers", element: <TeachersPage /> },
-  { path: "/attendance", element: <AttendancePage /> },
-  { path: "/finance", element: <FinancePage /> },
-  { path: "/events", element: <EventsPage /> },
-  { path: "/inventory", element: <InventoryPage /> },
-  { path: "/reports", element: <ReportsPage /> },
-  { path: "/users", element: <UsersPage /> },
-  { path: "/settings", element: <SettingsPage /> },
-  { path: "/statistics", element: <StatisticsPage /> },
-  { path: "/ai-assistant", element: <AIAssistantPage /> },
-  { path: "/grades", element: <GradesPage /> },
-  { path: "/timetable", element: <TimetablePage /> },
-  { path: "/homework", element: <HomeworkPage /> },
-  { path: "/classes", element: <ClassesPage /> },
-  { path: "/id-cards", element: <IDCardsPage /> },
-  { path: "/notifications", element: <NotificationsPage /> },
-  { path: "/hr-payroll", element: <HRPayrollPage /> },
-  { path: "/accounts", element: <AccountsPage /> },
+  { path: "/login", element: <LoginPage /> },
+  { path: "/", element: protect("/", <Home />) },
+  { path: "/students", element: protect("/students", <StudentsPage />) },
+  { path: "/teachers", element: protect("/teachers", <TeachersPage />) },
+  { path: "/parents", element: protect("/parents", <ParentsPage />) },
+  { path: "/attendance", element: protect("/attendance", <AttendancePage />) },
+  { path: "/finance", element: protect("/finance", <FinancePage />) },
+  { path: "/events", element: protect("/events", <EventsPage />) },
+  { path: "/inventory", element: protect("/inventory", <InventoryPage />) },
+  { path: "/reports", element: protect("/reports", <ReportsPage />) },
+  { path: "/users", element: protect("/users", <UsersPage />) },
+  { path: "/settings", element: protect("/settings", <SettingsPage />) },
+  { path: "/statistics", element: protect("/statistics", <StatisticsPage />) },
+  { path: "/ai-assistant", element: protect("/ai-assistant", <AIAssistantPage />) },
+  { path: "/grades", element: protect("/grades", <GradesPage />) },
+  { path: "/timetable", element: protect("/timetable", <TimetablePage />) },
+  { path: "/homework", element: protect("/homework", <HomeworkPage />) },
+  { path: "/classes", element: protect("/classes", <ClassesPage />) },
+  { path: "/id-cards", element: protect("/id-cards", <IDCardsPage />) },
+  { path: "/notifications", element: protect("/notifications", <NotificationsPage />) },
+  { path: "/hr-payroll", element: protect("/hr-payroll", <HRPayrollPage />) },
+  { path: "/accounts", element: protect("/accounts", <AccountsPage />) },
   { path: "*", element: <NotFound /> },
 ];
 
