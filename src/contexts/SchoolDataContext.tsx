@@ -133,6 +133,31 @@ interface ReportRow {
   created_at?: string | null;
 }
 
+interface MeetingRow {
+  id: string;
+  title: string;
+  type?: string | null;
+  description?: string | null;
+  scheduled_date?: string | null;
+  scheduled_time?: string | null;
+  room_name: string;
+  host_name?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+}
+
+export interface MeetingView {
+  id: string;
+  title: string;
+  type: string;
+  description: string;
+  date: string;
+  time: string;
+  roomName: string;
+  hostName: string;
+  status: string;
+}
+
 interface StudentView {
   id: string;
   name: string;
@@ -289,6 +314,7 @@ interface SchoolDataContextValue {
   financeData: FinanceOverview;
   classesData: ClassView[];
   notifications: NotificationView[];
+  meetings: MeetingView[];
   reports: ReportRow[];
   gradesRows: GradeRow[];
   gradeSubjects: string[];
@@ -359,6 +385,23 @@ interface SchoolDataContextValue {
   }) => Promise<void>;
   markNotificationRead: (notificationId: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
+  addMeeting: (payload: {
+    title: string;
+    type: string;
+    description: string;
+    date: string;
+    time: string;
+    hostName: string;
+  }) => Promise<void>;
+  updateMeeting: (id: string, payload: {
+    title?: string;
+    type?: string;
+    description?: string;
+    date?: string;
+    time?: string;
+    status?: string;
+  }) => Promise<void>;
+  deleteMeeting: (id: string) => Promise<void>;
 }
 
 const SchoolDataContext = createContext<SchoolDataContextValue | null>(null);
@@ -453,6 +496,22 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
   const [classesRows, setClassesRows] = useState<ClassRow[]>([]);
   const [notificationsRows, setNotificationsRows] = useState<NotificationRow[]>([]);
   const [reportsRows, setReportsRows] = useState<ReportRow[]>([]);
+  const [meetingsRows, setMeetingsRows] = useState<MeetingRow[]>([]);
+
+  const clearData = () => {
+    setStudentsRows([]);
+    setTeachersRows([]);
+    setPaymentsRows([]);
+    setAttendanceRows([]);
+    setEventsRows([]);
+    setInventoryRows([]);
+    setProfilesRows([]);
+    setGradesRows([]);
+    setClassesRows([]);
+    setNotificationsRows([]);
+    setReportsRows([]);
+    setMeetingsRows([]);
+  };
 
   const refreshData = async () => {
     setStatus("loading");
@@ -470,6 +529,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       classesResult,
       notificationsResult,
       reportsResult,
+      meetingsResult,
     ] = await Promise.all([
       supabase.from("students").select("*").order("created_at", { ascending: false }),
       supabase.from("teachers").select("*").order("created_at", { ascending: false }),
@@ -482,6 +542,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       supabase.from("classes").select("*").order("name", { ascending: true }),
       supabase.from("notifications").select("*").order("created_at", { ascending: false }),
       supabase.from("reports").select("*").order("date", { ascending: false }),
+      supabase.from("meetings").select("*").order("scheduled_date", { ascending: false }),
     ]);
 
     const firstError = [
@@ -496,6 +557,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       classesResult.error,
       notificationsResult.error,
       reportsResult.error,
+      meetingsResult.error,
     ].find(Boolean);
 
     if (firstError) {
@@ -515,12 +577,20 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     setClassesRows((classesResult.data as ClassRow[]) ?? []);
     setNotificationsRows((notificationsResult.data as NotificationRow[]) ?? []);
     setReportsRows((reportsResult.data as ReportRow[]) ?? []);
+    setMeetingsRows((meetingsResult.data as MeetingRow[]) ?? []);
     setStatus("ready");
   };
 
   useEffect(() => {
+    if (!session) {
+      clearData();
+      setError(null);
+      setStatus("idle");
+      return;
+    }
+
     void refreshData();
-  }, []);
+  }, [session]);
 
   const students = studentsRows.map((row) => {
     const collected = paymentsRows
@@ -1027,6 +1097,69 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     setNotificationsRows((prev) => prev.map((row) => (row.id === notificationId ? (data as NotificationRow) : row)));
   };
 
+  const meetings: MeetingView[] = meetingsRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    type: row.type ?? "General",
+    description: row.description ?? "",
+    date: normalizeDate(row.scheduled_date),
+    time: row.scheduled_time ?? "09:00",
+    roomName: row.room_name,
+    hostName: row.host_name ?? "Unknown",
+    status: row.status ?? "Scheduled",
+  }));
+
+  const addMeeting = async (payload: {
+    title: string;
+    type: string;
+    description: string;
+    date: string;
+    time: string;
+    hostName: string;
+  }) => {
+    const slug = payload.type.toLowerCase().replace(/\s+/g, "-");
+    const row: MeetingRow = {
+      id: `mtg_${Date.now()}`,
+      title: payload.title,
+      type: payload.type,
+      description: payload.description,
+      scheduled_date: payload.date,
+      scheduled_time: payload.time,
+      room_name: `edumanage-${slug}-${Date.now()}`,
+      host_name: payload.hostName,
+      status: "Scheduled",
+    };
+    const { data, error: insertError } = await supabase.from("meetings").insert(row).select().single();
+    if (insertError) throw insertError;
+    setMeetingsRows((prev) => [data as MeetingRow, ...prev]);
+  };
+
+  const updateMeeting = async (id: string, payload: {
+    title?: string;
+    type?: string;
+    description?: string;
+    date?: string;
+    time?: string;
+    status?: string;
+  }) => {
+    const updates: Record<string, string> = {};
+    if (payload.title !== undefined) updates.title = payload.title;
+    if (payload.type !== undefined) updates.type = payload.type;
+    if (payload.description !== undefined) updates.description = payload.description;
+    if (payload.date !== undefined) updates.scheduled_date = payload.date;
+    if (payload.time !== undefined) updates.scheduled_time = payload.time;
+    if (payload.status !== undefined) updates.status = payload.status;
+    const { data, error } = await supabase.from("meetings").update(updates).eq("id", id).select().single();
+    if (error) throw error;
+    setMeetingsRows((prev) => prev.map((r) => (r.id === id ? (data as MeetingRow) : r)));
+  };
+
+  const deleteMeeting = async (id: string) => {
+    const { error } = await supabase.from("meetings").delete().eq("id", id);
+    if (error) throw error;
+    setMeetingsRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
   const markAllNotificationsRead = async () => {
     const unreadIds = notificationsRows
       .filter((row) => (row.status ?? "").toLowerCase() !== "read")
@@ -1063,6 +1196,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     financeData,
     classesData,
     notifications,
+    meetings,
     reports: reportsRows,
     gradesRows,
     gradeSubjects,
@@ -1080,6 +1214,9 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     saveAttendance,
     markNotificationRead,
     markAllNotificationsRead,
+    addMeeting,
+    updateMeeting,
+    deleteMeeting,
   };
 
   return <SchoolDataContext.Provider value={value}>{children}</SchoolDataContext.Provider>;

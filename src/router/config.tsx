@@ -24,6 +24,7 @@ import NotificationsPage from "../pages/notifications/page";
 import HRPayrollPage from "../pages/hr-payroll/page";
 import AccountsPage from "../pages/accounts/page";
 import ParentsPage from "../pages/parents/page";
+import MeetingsPage from "../pages/meetings/page";
 
 function protect(path: string, element: React.ReactNode) {
   return <ProtectedRoute allowedRoles={routeAccess[path]}>{element}</ProtectedRoute>;
@@ -52,6 +53,7 @@ const routes: RouteObject[] = [
   { path: "/notifications", element: protect("/notifications", <NotificationsPage />) },
   { path: "/hr-payroll", element: protect("/hr-payroll", <HRPayrollPage />) },
   { path: "/accounts", element: protect("/accounts", <AccountsPage />) },
+  { path: "/meetings", element: protect("/meetings", <MeetingsPage />) },
   { path: "*", element: <NotFound /> },
 ];
 

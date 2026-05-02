@@ -1,4 +1,4 @@
-export type AppRole = "Admin" | "Teacher" | "Parent" | "Accountant" | "User";
+export type AppRole = "Admin" | "Teacher" | "Parent" | "Accountant" | "Secretary" | "User";
 
 export function normalizeRole(role?: string | null): AppRole {
   const normalized = (role ?? "").trim().toLowerCase();
@@ -7,6 +7,14 @@ export function normalizeRole(role?: string | null): AppRole {
   if (normalized.includes("teacher")) return "Teacher";
   if (normalized.includes("parent")) return "Parent";
   if (normalized.includes("account")) return "Accountant";
+  if (
+    normalized.includes("secretary") ||
+    normalized.includes("reception") ||
+    normalized.includes("front desk") ||
+    normalized.includes("admin assistant")
+  ) {
+    return "Secretary";
+  }
 
   return "User";
 }
@@ -14,31 +22,35 @@ export function normalizeRole(role?: string | null): AppRole {
 const adminOnly: AppRole[] = ["Admin"];
 const adminAndTeacher: AppRole[] = ["Admin", "Teacher"];
 const adminAndAccountant: AppRole[] = ["Admin", "Accountant"];
-const staffRoles: AppRole[] = ["Admin", "Teacher", "Accountant"];
-const everyoneExceptUser: AppRole[] = ["Admin", "Teacher", "Parent", "Accountant"];
+const adminAndSecretary: AppRole[] = ["Admin", "Secretary"];
+const adminTeacherAndSecretary: AppRole[] = ["Admin", "Teacher", "Secretary"];
+const staffRoles: AppRole[] = ["Admin", "Teacher", "Accountant", "Secretary"];
+const everyoneExceptUser: AppRole[] = ["Admin", "Teacher", "Parent", "Accountant", "Secretary"];
+const everyoneExceptTeacherAndUser: AppRole[] = ["Admin", "Parent", "Accountant", "Secretary"];
 
 export const routeAccess: Record<string, AppRole[]> = {
   "/": everyoneExceptUser,
   "/statistics": adminOnly,
   "/ai-assistant": everyoneExceptUser,
-  "/students": adminAndTeacher,
+  "/students": adminTeacherAndSecretary,
   "/teachers": adminOnly,
-  "/parents": adminOnly,
-  "/classes": adminAndTeacher,
-  "/timetable": adminAndTeacher,
+  "/parents": adminAndSecretary,
+  "/classes": adminTeacherAndSecretary,
+  "/timetable": adminTeacherAndSecretary,
   "/homework": adminAndTeacher,
   "/grades": adminAndTeacher,
-  "/attendance": adminAndTeacher,
-  "/id-cards": adminOnly,
+  "/attendance": adminTeacherAndSecretary,
+  "/id-cards": adminAndSecretary,
   "/users": adminOnly,
-  "/events": everyoneExceptUser,
+  "/events": everyoneExceptTeacherAndUser,
   "/notifications": everyoneExceptUser,
-  "/reports": ["Admin", "Teacher", "Accountant"],
+  "/reports": ["Admin", "Teacher", "Accountant", "Secretary"],
   "/finance": adminAndAccountant,
   "/accounts": adminAndAccountant,
   "/hr-payroll": adminAndAccountant,
-  "/inventory": adminAndAccountant,
+  "/inventory": ["Admin", "Accountant", "Secretary"],
   "/settings": adminOnly,
+  "/meetings": everyoneExceptUser,
 };
 
 export function canAccessRoute(role: AppRole, path: string) {
@@ -55,6 +67,8 @@ export function getDefaultRouteForRole(role: AppRole) {
       return "/events";
     case "Accountant":
       return "/finance";
+    case "Secretary":
+      return "/events";
     case "Admin":
       return "/";
     default:

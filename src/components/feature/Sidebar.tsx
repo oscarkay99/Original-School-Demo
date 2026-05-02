@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSchoolData } from "@/contexts/SchoolDataContext";
 import { canAccessRoute, normalizeRole } from "@/lib/access";
+import { supabase } from "@/lib/supabase";
 
 interface NavItem {
   label: string;
@@ -43,6 +44,7 @@ const navSections: NavSection[] = [
     items: [
       { label: "Users", icon: "ri-shield-user-line", path: "/users" },
       { label: "Events", icon: "ri-calendar-event-line", path: "/events" },
+      { label: "Meetings", icon: "ri-vidicon-line", path: "/meetings" },
       { label: "Notifications", icon: "ri-notification-3-line", path: "/notifications", badge: 4 },
       { label: "Reports", icon: "ri-file-chart-line", path: "/reports" },
     ],
@@ -72,6 +74,7 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const { currentUserRole, currentUserName } = useSchoolData();
+  const [signingOut, setSigningOut] = useState(false);
   const role = normalizeRole(currentUserRole);
   const initials = currentUserName
     .split(" ")
@@ -90,6 +93,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const toggleSection = (title: string) => {
     if (collapsed) return;
     setExpandedSections((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      navigate("/login", { replace: true });
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -222,6 +236,24 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
           {!collapsed && <i className="ri-more-2-line text-white/25 text-sm flex-shrink-0"></i>}
         </div>
+        <button
+          type="button"
+          onClick={() => void handleSignOut()}
+          disabled={signingOut}
+          title={collapsed ? "Log out" : undefined}
+          className={`mt-2 w-full flex items-center gap-2.5 rounded-lg text-white/55 hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+            collapsed ? "p-2 justify-center" : "px-2 py-2"
+          }`}
+        >
+          <span className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] flex-shrink-0">
+            <i className={`text-sm ${signingOut ? "ri-loader-4-line animate-spin" : "ri-logout-box-r-line"}`}></i>
+          </span>
+          {!collapsed && (
+            <span className="text-xs font-semibold">
+              {signingOut ? "Signing out..." : "Log out"}
+            </span>
+          )}
+        </button>
       </div>
     </aside>
   );
