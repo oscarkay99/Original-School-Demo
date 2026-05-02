@@ -1,0 +1,2 @@
+-- Placeholder to match the legacy short migration version already recorded on the remote project.
+-- Subsequent local migrations use unique full timestamps so future db push operations remain stable.

@@ -143,7 +143,14 @@ interface MeetingRow {
   room_name: string;
   host_name?: string | null;
   status?: string | null;
+  participant_emails?: string | null;
   created_at?: string | null;
+}
+
+export interface MeetingParticipant {
+  name: string;
+  email: string;
+  role: string;
 }
 
 export interface MeetingView {
@@ -156,6 +163,7 @@ export interface MeetingView {
   roomName: string;
   hostName: string;
   status: string;
+  participants: MeetingParticipant[];
 }
 
 interface StudentView {
@@ -392,6 +400,7 @@ interface SchoolDataContextValue {
     date: string;
     time: string;
     hostName: string;
+    participants: MeetingParticipant[];
   }) => Promise<void>;
   updateMeeting: (id: string, payload: {
     title?: string;
@@ -400,6 +409,7 @@ interface SchoolDataContextValue {
     date?: string;
     time?: string;
     status?: string;
+    participants?: MeetingParticipant[];
   }) => Promise<void>;
   deleteMeeting: (id: string) => Promise<void>;
 }
@@ -1097,17 +1107,24 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     setNotificationsRows((prev) => prev.map((row) => (row.id === notificationId ? (data as NotificationRow) : row)));
   };
 
-  const meetings: MeetingView[] = meetingsRows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    type: row.type ?? "General",
-    description: row.description ?? "",
-    date: normalizeDate(row.scheduled_date),
-    time: row.scheduled_time ?? "09:00",
-    roomName: row.room_name,
-    hostName: row.host_name ?? "Unknown",
-    status: row.status ?? "Scheduled",
-  }));
+  const meetings: MeetingView[] = meetingsRows.map((row) => {
+    let participants: MeetingParticipant[] = [];
+    try {
+      participants = row.participant_emails ? JSON.parse(row.participant_emails) : [];
+    } catch { participants = []; }
+    return {
+      id: row.id,
+      title: row.title,
+      type: row.type ?? "General",
+      description: row.description ?? "",
+      date: normalizeDate(row.scheduled_date),
+      time: row.scheduled_time ?? "09:00",
+      roomName: row.room_name,
+      hostName: row.host_name ?? "Unknown",
+      status: row.status ?? "Scheduled",
+      participants,
+    };
+  });
 
   const addMeeting = async (payload: {
     title: string;
@@ -1116,6 +1133,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     date: string;
     time: string;
     hostName: string;
+    participants: MeetingParticipant[];
   }) => {
     const slug = payload.type.toLowerCase().replace(/\s+/g, "-");
     const row: MeetingRow = {
@@ -1128,6 +1146,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       room_name: `edumanage-${slug}-${Date.now()}`,
       host_name: payload.hostName,
       status: "Scheduled",
+      participant_emails: payload.participants.length ? JSON.stringify(payload.participants) : null,
     };
     const { data, error: insertError } = await supabase.from("meetings").insert(row).select().single();
     if (insertError) throw insertError;
@@ -1141,14 +1160,17 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     date?: string;
     time?: string;
     status?: string;
+    participants?: MeetingParticipant[];
   }) => {
-    const updates: Record<string, string> = {};
+    const updates: Record<string, string | null> = {};
     if (payload.title !== undefined) updates.title = payload.title;
     if (payload.type !== undefined) updates.type = payload.type;
     if (payload.description !== undefined) updates.description = payload.description;
     if (payload.date !== undefined) updates.scheduled_date = payload.date;
     if (payload.time !== undefined) updates.scheduled_time = payload.time;
     if (payload.status !== undefined) updates.status = payload.status;
+    if (payload.participants !== undefined)
+      updates.participant_emails = payload.participants.length ? JSON.stringify(payload.participants) : null;
     const { data, error } = await supabase.from("meetings").update(updates).eq("id", id).select().single();
     if (error) throw error;
     setMeetingsRows((prev) => prev.map((r) => (r.id === id ? (data as MeetingRow) : r)));
