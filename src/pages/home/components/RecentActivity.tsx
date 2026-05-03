@@ -1,9 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { normalizeRole } from "@/lib/access";
 
 export default function RecentActivity() {
   const navigate = useNavigate();
-  const { recentActivity: activities } = useSchoolData();
+  const { recentActivity, currentUserRole } = useSchoolData();
+  const role = normalizeRole(currentUserRole);
+  const activities = role === "Teacher"
+    ? recentActivity.filter((activity) => activity.tag !== "Finance" && activity.tag !== "Event")
+    : recentActivity;
   return (
     <div className="bg-white rounded-2xl p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-5">
@@ -18,7 +23,7 @@ export default function RecentActivity() {
       </div>
 
       <div className="flex-1 space-y-1">
-        {activities.map((a) => (
+        {activities.length > 0 ? activities.map((a) => (
           <div
             key={a.id}
             onClick={() => navigate("/notifications")}
@@ -35,7 +40,15 @@ export default function RecentActivity() {
               </div>
             </div>
           </div>
-        ))}
+        )) : (
+          <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 text-center">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
+              <i className="ri-inbox-archive-line text-slate-400 text-lg"></i>
+            </div>
+            <p className="text-sm font-semibold text-slate-600">No recent activity yet</p>
+            <p className="text-xs text-slate-400 mt-1">New enrollments, attendance, and updates will appear here.</p>
+          </div>
+        )}
       </div>
 
       <button

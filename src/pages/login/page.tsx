@@ -3,6 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
+const demoAccounts = [
+  { role: "Admin",      email: "oscarnyavor99@gmail.com",              password: "admin123", icon: "ri-shield-star-line",      color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
+  { role: "Teacher",    email: "teacher.demo.schooltest@gmail.com",    password: "admin123", icon: "ri-user-star-line",         color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+  { role: "Accountant", email: "accountant.demo.schooltest@gmail.com", password: "admin123", icon: "ri-money-dollar-circle-line",color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  { role: "Secretary",  email: "secretary.demo.schooltest@gmail.com",  password: "admin123", icon: "ri-customer-service-2-line", color: "#db2777", bg: "#fdf2f8", border: "#fbcfe8" },
+  { role: "Parent",     email: "parent.demo.schooltest@gmail.com",     password: "admin123", icon: "ri-heart-line",             color: "#059669", bg: "#f0fdf4", border: "#a7f3d0" },
+];
+
 const floatingIcons = [
   { icon: "ri-book-open-line",        color: "#a78bfa", size: "text-xl",  top: "18%",  left: "12%",  delay: "0s",    duration: "7s"  },
   { icon: "ri-graduation-cap-line",   color: "#34d399", size: "text-2xl", top: "55%",  left: "6%",   delay: "1.2s",  duration: "9s"  },
@@ -306,42 +314,35 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-slate-100"></div>
-              <p className="text-[11px] text-slate-400 font-medium">or continue with</p>
-              <div className="flex-1 h-px bg-slate-100"></div>
+            {/* Demo accounts */}
+            <div className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-slate-100"></div>
+                <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Demo Accounts</p>
+                <div className="flex-1 h-px bg-slate-100"></div>
+              </div>
+              <p className="text-[11px] text-slate-400 text-center mb-3">Click a role to auto-fill credentials · Password: <span className="font-semibold text-slate-500">admin123</span></p>
+              <div className="grid grid-cols-1 gap-2">
+                {demoAccounts.map((acc) => (
+                  <button
+                    key={acc.role}
+                    type="button"
+                    onClick={() => { setEmail(acc.email); setPassword(acc.password); setError(null); }}
+                    className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer hover:shadow-sm text-left"
+                    style={{ background: acc.bg, borderColor: acc.border }}
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: acc.color + "20" }}>
+                      <i className={`${acc.icon} text-sm`} style={{ color: acc.color }}></i>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-700">{acc.role}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{acc.email}</p>
+                    </div>
+                    <i className="ri-arrow-right-s-line text-slate-300 text-sm flex-shrink-0"></i>
+                  </button>
+                ))}
+              </div>
             </div>
-
-            {/* SSO buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { icon: "ri-google-fill", label: "Google" },
-                { icon: "ri-microsoft-fill", label: "Microsoft" },
-              ].map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  onClick={async () => {
-                    await supabase.auth.signInWithOAuth({
-                      provider: p.label.toLowerCase() as "google" | "azure",
-                      options: { redirectTo: window.location.origin },
-                    });
-                  }}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer"
-                >
-                  <i className={`${p.icon} text-base`}></i>
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-center text-xs text-slate-400 mt-8">
-              Don't have an account?{" "}
-              <span className="text-violet-600 font-semibold cursor-pointer hover:text-violet-700">
-                Contact your administrator
-              </span>
-            </p>
           </div>
 
           {/* Bottom badge */}

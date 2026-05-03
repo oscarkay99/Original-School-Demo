@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AppLayout from "@/components/feature/AppLayout";
 import MetricCard from "./components/MetricCard";
 import AttendanceChart from "./components/AttendanceChart";
@@ -8,91 +8,16 @@ import RecentActivity from "./components/RecentActivity";
 import TopStudents from "./components/TopStudents";
 import QuickActions from "./components/QuickActions";
 import { useCountUp } from "@/hooks/useCountUp";
-import { checkSupabaseConnection } from "@/lib/supabase";
 import { useSchoolData } from "@/contexts/SchoolDataContext";
 import ParentDashboard from "./components/ParentDashboard";
 
-function SupabaseStatusCard() {
-  const [status, setStatus] = useState<"checking" | "connected" | "failed">("checking");
-  const [message, setMessage] = useState("Checking Supabase connection...");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void checkSupabaseConnection()
-      .then((code) => {
-        if (cancelled) return;
-        setStatus("connected");
-        setMessage(`Supabase REST API reachable (${code}).`);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        setStatus("failed");
-        setMessage(error instanceof Error ? error.message : "Supabase connection failed.");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const tone =
-    status === "connected"
-      ? {
-          dot: "bg-emerald-400",
-          panel: "linear-gradient(135deg, #052e16 0%, #14532d 100%)",
-          border: "border-emerald-400/20",
-          text: "text-emerald-50",
-          subtext: "text-emerald-100/70",
-        }
-      : status === "failed"
-        ? {
-            dot: "bg-rose-400",
-            panel: "linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%)",
-            border: "border-rose-400/20",
-            text: "text-rose-50",
-            subtext: "text-rose-100/70",
-          }
-        : {
-            dot: "bg-amber-300",
-            panel: "linear-gradient(135deg, #422006 0%, #78350f 100%)",
-            border: "border-amber-300/20",
-            text: "text-amber-50",
-            subtext: "text-amber-100/70",
-          };
-
-  return (
-    <div
-      className={`rounded-3xl border px-6 py-5 ${tone.border}`}
-      style={{ background: tone.panel }}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${tone.dot}`}></span>
-            <span className={`text-[11px] font-bold uppercase tracking-[0.24em] ${tone.subtext}`}>
-              Supabase
-            </span>
-          </div>
-          <h3 className={`text-lg font-bold ${tone.text}`}>Database connection status</h3>
-          <p className={`mt-1 text-sm ${tone.subtext}`}>{message}</p>
-        </div>
-        <div className={`rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm ${tone.text}`}>
-          <div className="font-semibold">Project</div>
-          <div className={`mt-1 font-mono text-xs ${tone.subtext}`}>amofwvuezbvytzwfbvdm</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HeroBanner() {
+function HeroBanner({ isTeacher }: { isTeacher?: boolean }) {
   const { students } = useSchoolData();
   const activeStudents = students.filter((s) => s.status === "Active").length;
   const [year, setYear] = useState("2025/26");
   const [term, setTerm] = useState("All Terms");
-  const collectedAnim = useCountUp(18000, 1600, 0);
   const avgAnim = useCountUp(80.5, 1600, 1);
+  const attendanceAnim = useCountUp(83, 1600, 0);
 
   return (
     <div
@@ -119,7 +44,9 @@ function HeroBanner() {
             </span>
           </h2>
           <p className="text-white/50 text-sm max-w-md leading-relaxed">
-            Real-time insights — student health, fee collection, academic momentum &amp; operational risk.
+            {isTeacher
+              ? "Real-time insights into classroom attendance, learner performance, and academic momentum."
+              : "Real-time insights — student health, fee collection, academic momentum & operational risk."}
           </p>
           <div className="flex flex-wrap gap-2 mt-5">
             {[
@@ -141,17 +68,31 @@ function HeroBanner() {
 
         {/* Stat panels */}
         <div className="flex gap-3 flex-wrap">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 min-w-[160px]">
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-2">Collection Velocity</p>
-            <p className="text-3xl font-extrabold text-white leading-none tabular-nums">
-              GH₵{Math.round(collectedAnim / 1000)}k
-            </p>
-            <div className="flex items-center gap-1 mt-2">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-              <p className="text-emerald-400 text-xs font-semibold">53% of target</p>
+          {isTeacher ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 min-w-[160px]">
+              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-2">Attendance Rate</p>
+              <p className="text-3xl font-extrabold text-white leading-none tabular-nums">
+                {Math.round(attendanceAnim)}%
+              </p>
+              <div className="flex items-center gap-1 mt-2">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                <p className="text-emerald-400 text-xs font-semibold">Strong classroom turnout</p>
+              </div>
+              <p className="text-white/30 text-[10px] mt-1">Present learners across active classes</p>
             </div>
-            <p className="text-white/30 text-[10px] mt-1">Outstanding GH₵16,250</p>
-          </div>
+          ) : (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 min-w-[160px]">
+              <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-2">Collection Velocity</p>
+              <p className="text-3xl font-extrabold text-white leading-none tabular-nums">
+                GH₵18k
+              </p>
+              <div className="flex items-center gap-1 mt-2">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                <p className="text-emerald-400 text-xs font-semibold">53% of target</p>
+              </div>
+              <p className="text-white/30 text-[10px] mt-1">Outstanding GH₵16,250</p>
+            </div>
+          )}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 min-w-[140px]">
             <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-2">Academic Avg</p>
             <p className="text-3xl font-extrabold text-white leading-none tabular-nums">
@@ -199,10 +140,11 @@ function HeroBanner() {
 }
 
 export default function Dashboard() {
-  const { students, teachers, financeData, currentUserRole } = useSchoolData();
+  const { students, teachers, currentUserRole } = useSchoolData();
   const activeStudents = students.filter((s) => s.status === "Active").length;
   const presentToday = students.filter((s) => s.attendance >= 90).length;
   const avgGrade = Math.round((students.reduce((a, b) => a + b.gpa, 0) / Math.max(students.length, 1)) * 25);
+  const isTeacher = currentUserRole === "Teacher";
 
   if (currentUserRole === "Parent") {
     return (
@@ -216,10 +158,8 @@ export default function Dashboard() {
     <AppLayout title="Dashboard" subtitle="Live command center · AY 2025/26">
       <div className="space-y-6">
 
-        <SupabaseStatusCard />
-
         {/* Hero */}
-        <HeroBanner />
+        <HeroBanner isTeacher={isTeacher} />
 
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -266,21 +206,30 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Attendance + Fee Velocity */}
+        {/* Attendance + Role Summary */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <AttendanceChart />
           </div>
-          <div>
-            <FeeVelocity />
-          </div>
+          {!isTeacher && (
+            <div>
+              <FeeVelocity />
+            </div>
+          )}
+          {isTeacher && (
+            <div>
+              <GradeDistribution />
+            </div>
+          )}
         </div>
 
         {/* Grade Distribution + Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div>
-            <GradeDistribution />
-          </div>
+          {!isTeacher && (
+            <div>
+              <GradeDistribution />
+            </div>
+          )}
           <div className="lg:col-span-2">
             <RecentActivity />
           </div>

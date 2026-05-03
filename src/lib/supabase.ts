@@ -9,9 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const SUPABASE_URL = supabaseUrl as string;
 export const SUPABASE_ANON_KEY = supabaseAnonKey as string;
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: { persistSession: false },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function checkSupabaseConnection() {
   const response = await fetch(`${supabaseUrl}/rest/v1/`, {

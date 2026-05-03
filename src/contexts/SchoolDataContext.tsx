@@ -1,4 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
@@ -8,7 +10,7 @@ import {
 } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { normalizeRole } from "@/lib/access";
+import { normalizeRole, type AppRole } from "@/lib/access";
 
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 
@@ -491,6 +493,13 @@ function getStatusPriority(status?: string | null): "High" | "Medium" | "Low" {
   return "Low";
 }
 
+function deriveSessionRole(session: ReturnType<typeof useAuth>["session"]): AppRole {
+  return normalizeRole(
+    (typeof session?.user.user_metadata?.role === "string" ? session.user.user_metadata.role : null) ??
+    (session?.user.email?.includes("oscar") ? "Admin" : null),
+  );
+}
+
 export function SchoolDataProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const [status, setStatus] = useState<LoadStatus>("idle");
@@ -523,9 +532,21 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     setMeetingsRows([]);
   };
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     setStatus("loading");
     setError(null);
+
+    const sessionRole = deriveSessionRole(session);
+    const canReadTeachers = sessionRole === "Admin" || sessionRole === "Teacher" || sessionRole === "Secretary";
+    const canReadPayments = sessionRole === "Admin" || sessionRole === "Accountant" || sessionRole === "Secretary";
+    const canReadAttendance = sessionRole === "Admin" || sessionRole === "Teacher" || sessionRole === "Secretary" || sessionRole === "Parent";
+    const canReadInventory = sessionRole === "Admin" || sessionRole === "Accountant" || sessionRole === "Secretary";
+    const canReadProfiles = sessionRole === "Admin" || sessionRole === "Teacher" || sessionRole === "Accountant" || sessionRole === "Secretary";
+    const canReadGrades = sessionRole === "Admin" || sessionRole === "Teacher" || sessionRole === "Parent";
+    const canReadClasses = sessionRole === "Admin" || sessionRole === "Teacher" || sessionRole === "Secretary";
+    const canReadReports = sessionRole === "Admin" || sessionRole === "Teacher" || sessionRole === "Accountant" || sessionRole === "Secretary";
+
+    const emptyResult = Promise.resolve({ data: [], error: null });
 
     const [
       studentsResult,
@@ -542,16 +563,34 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       meetingsResult,
     ] = await Promise.all([
       supabase.from("students").select("*").order("created_at", { ascending: false }),
-      supabase.from("teachers").select("*").order("created_at", { ascending: false }),
-      supabase.from("payments").select("*").order("date", { ascending: false }),
-      supabase.from("attendance").select("*").order("date", { ascending: false }),
+      canReadTeachers
+        ? supabase.from("teachers").select("*").order("created_at", { ascending: false })
+        : emptyResult,
+      canReadPayments
+        ? supabase.from("payments").select("*").order("date", { ascending: false })
+        : emptyResult,
+      canReadAttendance
+        ? supabase.from("attendance").select("*").order("date", { ascending: false })
+        : emptyResult,
       supabase.from("events").select("*").order("date", { ascending: false }),
-      supabase.from("inventory").select("*").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-      supabase.from("grades").select("*").order("created_at", { ascending: false }),
-      supabase.from("classes").select("*").order("name", { ascending: true }),
+      canReadInventory
+        ? supabase.from("inventory").select("*").order("created_at", { ascending: false })
+        : emptyResult,
+      canReadProfiles
+        ? supabase.from("profiles").select("*").order("created_at", { ascending: false })
+        : session?.user.id
+          ? supabase.from("profiles").select("*").eq("id", session.user.id)
+          : emptyResult,
+      canReadGrades
+        ? supabase.from("grades").select("*").order("created_at", { ascending: false })
+        : emptyResult,
+      canReadClasses
+        ? supabase.from("classes").select("*").order("name", { ascending: true })
+        : emptyResult,
       supabase.from("notifications").select("*").order("created_at", { ascending: false }),
-      supabase.from("reports").select("*").order("date", { ascending: false }),
+      canReadReports
+        ? supabase.from("reports").select("*").order("date", { ascending: false })
+        : emptyResult,
       supabase.from("meetings").select("*").order("scheduled_date", { ascending: false }),
     ]);
 
@@ -589,7 +628,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     setReportsRows((reportsResult.data as ReportRow[]) ?? []);
     setMeetingsRows((meetingsResult.data as MeetingRow[]) ?? []);
     setStatus("ready");
-  };
+  }, [session]);
 
   useEffect(() => {
     if (!session) {
@@ -600,7 +639,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     }
 
     void refreshData();
-  }, [session]);
+  }, [session, refreshData]);
 
   const students = studentsRows.map((row) => {
     const collected = paymentsRows
@@ -692,7 +731,9 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
     avatar: getInitials(row.full_name ?? "User"),
   }));
 
-  const currentUserProfile = users.find((user) => user.email && user.email === (session?.user.email ?? ""));
+  const currentUserProfile = users.find(
+    (user) => user.email && user.email.toLowerCase() === (session?.user.email ?? "").toLowerCase()
+  );
   const metadataName =
     typeof session?.user.user_metadata?.full_name === "string"
       ? session.user.user_metadata.full_name
@@ -701,11 +742,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
         : "";
   const currentUserName = currentUserProfile?.name || metadataName || session?.user.email?.split("@")[0] || "User";
   const currentUserEmail = currentUserProfile?.email ?? session?.user.email ?? "";
-  const currentUserRole = normalizeRole(
-    currentUserProfile?.role ??
-    (typeof session?.user.user_metadata?.role === "string" ? session.user.user_metadata.role : null) ??
-    (session?.user.email?.includes("oscar") ? "Admin" : null),
-  );
+  const currentUserRole = normalizeRole(currentUserProfile?.role ?? deriveSessionRole(session));
 
   const attendanceMap = new Map<string, AttendanceSummary>();
   attendanceRows.forEach((row) => {
@@ -810,6 +847,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       text: `New student ${row.full_name} enrolled in ${row.class_name}`,
       tag: "Enrollment",
       time: formatRelativeTime(row.created_at),
+      sortValue: new Date(row.created_at ?? 0).getTime() || 0,
       icon: "ri-user-add-line",
       tagBg: "bg-violet-100",
       tagText: "text-violet-700",
@@ -821,6 +859,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       text: `Fee payment GH₵${Number(row.amount ?? 0).toLocaleString()} received — ${row.student_name ?? "Unknown Student"}`,
       tag: "Finance",
       time: formatRelativeTime(row.created_at ?? row.date),
+      sortValue: new Date(row.created_at ?? row.date ?? 0).getTime() || 0,
       icon: "ri-money-dollar-circle-line",
       tagBg: "bg-emerald-100",
       tagText: "text-emerald-700",
@@ -832,6 +871,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       text: `Attendance marked for ${row.date} — ${row.present}/${row.total} present`,
       tag: "Attendance",
       time: formatRelativeTime(row.date),
+      sortValue: new Date(row.date).getTime() || 0,
       icon: "ri-calendar-check-line",
       tagBg: "bg-amber-100",
       tagText: "text-amber-700",
@@ -843,6 +883,7 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       text: `Event ${row.title} is scheduled for ${normalizeDate(row.date)}`,
       tag: "Event",
       time: formatRelativeTime(row.created_at ?? row.date),
+      sortValue: new Date(row.created_at ?? row.date ?? 0).getTime() || 0,
       icon: "ri-calendar-event-line",
       tagBg: "bg-rose-100",
       tagText: "text-rose-700",
@@ -850,8 +891,9 @@ export function SchoolDataProvider({ children }: { children: ReactNode }) {
       iconColor: "text-rose-600",
     })),
   ]
-    .sort((a, b) => a.time.localeCompare(b.time))
-    .slice(0, 6);
+    .sort((a, b) => b.sortValue - a.sortValue)
+    .slice(0, 6)
+    .map(({ sortValue: _sortValue, ...item }) => item);
 
   const topStudents = [...students]
     .sort((a, b) => b.gpa - a.gpa)

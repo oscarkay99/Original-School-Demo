@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { RouteObject } from "react-router-dom";
 import ProtectedRoute from "../components/feature/ProtectedRoute";
 import { routeAccess } from "@/lib/access";
@@ -26,34 +27,34 @@ import AccountsPage from "../pages/accounts/page";
 import ParentsPage from "../pages/parents/page";
 import MeetingsPage from "../pages/meetings/page";
 
-function protect(path: string, element: React.ReactNode) {
-  return <ProtectedRoute allowedRoles={routeAccess[path]}>{element}</ProtectedRoute>;
+function ProtectedPage({ path, children }: { path: string; children: React.ReactNode }) {
+  return <ProtectedRoute allowedRoles={routeAccess[path]}>{children}</ProtectedRoute>;
 }
 
 const routes: RouteObject[] = [
   { path: "/login", element: <LoginPage /> },
-  { path: "/", element: protect("/", <Home />) },
-  { path: "/students", element: protect("/students", <StudentsPage />) },
-  { path: "/teachers", element: protect("/teachers", <TeachersPage />) },
-  { path: "/parents", element: protect("/parents", <ParentsPage />) },
-  { path: "/attendance", element: protect("/attendance", <AttendancePage />) },
-  { path: "/finance", element: protect("/finance", <FinancePage />) },
-  { path: "/events", element: protect("/events", <EventsPage />) },
-  { path: "/inventory", element: protect("/inventory", <InventoryPage />) },
-  { path: "/reports", element: protect("/reports", <ReportsPage />) },
-  { path: "/users", element: protect("/users", <UsersPage />) },
-  { path: "/settings", element: protect("/settings", <SettingsPage />) },
-  { path: "/statistics", element: protect("/statistics", <StatisticsPage />) },
-  { path: "/ai-assistant", element: protect("/ai-assistant", <AIAssistantPage />) },
-  { path: "/grades", element: protect("/grades", <GradesPage />) },
-  { path: "/timetable", element: protect("/timetable", <TimetablePage />) },
-  { path: "/homework", element: protect("/homework", <HomeworkPage />) },
-  { path: "/classes", element: protect("/classes", <ClassesPage />) },
-  { path: "/id-cards", element: protect("/id-cards", <IDCardsPage />) },
-  { path: "/notifications", element: protect("/notifications", <NotificationsPage />) },
-  { path: "/hr-payroll", element: protect("/hr-payroll", <HRPayrollPage />) },
-  { path: "/accounts", element: protect("/accounts", <AccountsPage />) },
-  { path: "/meetings", element: protect("/meetings", <MeetingsPage />) },
+  { path: "/", element: <ProtectedPage path="/"><Home /></ProtectedPage> },
+  { path: "/students", element: <ProtectedPage path="/students"><StudentsPage /></ProtectedPage> },
+  { path: "/teachers", element: <ProtectedPage path="/teachers"><TeachersPage /></ProtectedPage> },
+  { path: "/parents", element: <ProtectedPage path="/parents"><ParentsPage /></ProtectedPage> },
+  { path: "/attendance", element: <ProtectedPage path="/attendance"><AttendancePage /></ProtectedPage> },
+  { path: "/finance", element: <ProtectedPage path="/finance"><FinancePage /></ProtectedPage> },
+  { path: "/events", element: <ProtectedPage path="/events"><EventsPage /></ProtectedPage> },
+  { path: "/inventory", element: <ProtectedPage path="/inventory"><InventoryPage /></ProtectedPage> },
+  { path: "/reports", element: <ProtectedPage path="/reports"><ReportsPage /></ProtectedPage> },
+  { path: "/users", element: <ProtectedPage path="/users"><UsersPage /></ProtectedPage> },
+  { path: "/settings", element: <ProtectedPage path="/settings"><SettingsPage /></ProtectedPage> },
+  { path: "/statistics", element: <ProtectedPage path="/statistics"><StatisticsPage /></ProtectedPage> },
+  { path: "/ai-assistant", element: <ProtectedPage path="/ai-assistant"><AIAssistantPage /></ProtectedPage> },
+  { path: "/grades", element: <ProtectedPage path="/grades"><GradesPage /></ProtectedPage> },
+  { path: "/timetable", element: <ProtectedPage path="/timetable"><TimetablePage /></ProtectedPage> },
+  { path: "/homework", element: <ProtectedPage path="/homework"><HomeworkPage /></ProtectedPage> },
+  { path: "/classes", element: <ProtectedPage path="/classes"><ClassesPage /></ProtectedPage> },
+  { path: "/id-cards", element: <ProtectedPage path="/id-cards"><IDCardsPage /></ProtectedPage> },
+  { path: "/notifications", element: <ProtectedPage path="/notifications"><NotificationsPage /></ProtectedPage> },
+  { path: "/hr-payroll", element: <ProtectedPage path="/hr-payroll"><HRPayrollPage /></ProtectedPage> },
+  { path: "/accounts", element: <ProtectedPage path="/accounts"><AccountsPage /></ProtectedPage> },
+  { path: "/meetings", element: <ProtectedPage path="/meetings"><MeetingsPage /></ProtectedPage> },
   { path: "*", element: <NotFound /> },
 ];
 

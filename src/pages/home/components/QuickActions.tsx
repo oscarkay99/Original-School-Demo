@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { useSchoolData } from "@/contexts/SchoolDataContext";
+import { canAccessRoute, normalizeRole } from "@/lib/access";
 
 const actions = [
   {
@@ -33,6 +35,9 @@ const actions = [
 
 export default function QuickActions() {
   const navigate = useNavigate();
+  const { currentUserRole } = useSchoolData();
+  const role = normalizeRole(currentUserRole);
+  const visibleActions = actions.filter((action) => canAccessRoute(role, action.path));
   return (
     <div className="bg-white rounded-2xl p-6">
       <div className="flex items-center justify-between mb-5">
@@ -42,7 +47,7 @@ export default function QuickActions() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {actions.map((a) => (
+        {visibleActions.length > 0 ? visibleActions.map((a) => (
           <button
             key={a.label}
             onClick={() => navigate(a.path)}
@@ -54,11 +59,16 @@ export default function QuickActions() {
               <i className={`${a.icon} text-base`}></i>
             </div>
             <div>
-              <p className="text-sm font-bold leading-tight whitespace-nowrap">{a.label}</p>
+              <p className="text-sm font-bold leading-tight">{a.label}</p>
               <p className="text-white/60 text-[10px] mt-0.5">{a.sub}</p>
             </div>
           </button>
-        ))}
+        )) : (
+          <div className="col-span-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
+            <p className="text-sm font-semibold text-slate-600">No quick actions available</p>
+            <p className="text-xs text-slate-400 mt-1">Your role currently has view-only access on this dashboard.</p>
+          </div>
+        )}
       </div>
     </div>
   );

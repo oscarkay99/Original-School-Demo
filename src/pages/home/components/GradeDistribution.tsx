@@ -25,6 +25,18 @@ export default function GradeDistribution() {
 
     ctx.clearRect(0, 0, size, size);
 
+    if (total === 0) {
+      ctx.fillStyle = "#1e293b";
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("0", cx, cy - 5);
+      ctx.font = "10px sans-serif";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText("students", cx, cy + 10);
+      return;
+    }
+
     let startAngle = -Math.PI / 2;
     grades.forEach((g, i) => {
       const slice = (g.count / total) * 2 * Math.PI;
@@ -56,7 +68,7 @@ export default function GradeDistribution() {
     ctx.font = "10px sans-serif";
     ctx.fillStyle = "#94a3b8";
     ctx.fillText("students", cx, cy + 10);
-  }, [hovered]);
+  }, [grades, hovered, total]);
 
   return (
     <div className="bg-white rounded-2xl p-6">

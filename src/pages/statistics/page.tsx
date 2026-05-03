@@ -28,9 +28,15 @@ const termComparison = [
 
 export default function StatisticsPage() {
   const { students, teachers, attendanceData, financeData, gradesRows } = useSchoolData();
-  const avgGpa = (students.reduce((a, b) => a + b.gpa, 0) / students.length).toFixed(2);
-  const avgAttendance = Math.round(students.reduce((a, b) => a + b.attendance, 0) / students.length);
-  const feeRate = Math.round((financeData.collected / financeData.totalRevenue) * 100);
+  const avgGpa = students.length
+    ? (students.reduce((a, b) => a + b.gpa, 0) / students.length).toFixed(2)
+    : "0.00";
+  const avgAttendance = students.length
+    ? Math.round(students.reduce((a, b) => a + b.attendance, 0) / students.length)
+    : 0;
+  const feeRate = financeData.totalRevenue
+    ? Math.round((financeData.collected / financeData.totalRevenue) * 100)
+    : 0;
 
   const exportStatistics = () => {
     downloadCsv(
@@ -186,7 +192,7 @@ export default function StatisticsPage() {
         <p className="font-semibold text-slate-800 text-sm mb-4">Weekly Attendance Breakdown</p>
         <div className="flex items-end gap-3 h-36">
           {attendanceData.map((d, i) => {
-            const pct = Math.round((d.present / d.total) * 100);
+            const pct = d.total ? Math.round((d.present / d.total) * 100) : 0;
             const day = new Date(d.date).toLocaleDateString("en", { weekday: "short" });
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1.5">

@@ -54,7 +54,7 @@ export default function FinancePage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Revenue", value: `GH₵${financeData.totalRevenue.toLocaleString()}`, icon: "ri-money-dollar-circle-line", sub: "2025/26 Academic Year" },
-          { label: "Collected", value: `GH₵${financeData.collected.toLocaleString()}`, icon: "ri-checkbox-circle-line", sub: `${Math.round((financeData.collected / financeData.totalRevenue) * 100)}% of target` },
+          { label: "Collected", value: `GH₵${financeData.collected.toLocaleString()}`, icon: "ri-checkbox-circle-line", sub: `${financeData.totalRevenue ? Math.round((financeData.collected / financeData.totalRevenue) * 100) : 0}% of target` },
           { label: "Outstanding", value: `GH₵${financeData.outstanding.toLocaleString()}`, icon: "ri-error-warning-line", sub: "Pending collection" },
           { label: "Expenses", value: `GH₵${financeData.expenses.toLocaleString()}`, icon: "ri-shopping-cart-line", sub: "This term" },
         ].map((m) => (

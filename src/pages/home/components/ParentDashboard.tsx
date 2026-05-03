@@ -158,7 +158,7 @@ export default function ParentDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {attendanceData.slice(0, 6).map((d) => {
-                      const pct = Math.round((d.present / d.total) * 100);
+                      const pct = d.total ? Math.round((d.present / d.total) * 100) : 0;
                       const day = new Date(d.date).toLocaleDateString("en", {
                         weekday: "short", day: "numeric", month: "short",
                       });

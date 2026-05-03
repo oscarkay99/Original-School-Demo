@@ -467,6 +467,7 @@ export default function StudentsPage() {
                           parent: prev[editingStudent.id]?.parent ?? editingStudent.parent,
                           grade: prev[editingStudent.id]?.grade ?? editingStudent.grade,
                           email: prev[editingStudent.id]?.email ?? editingStudent.email,
+                          guardianEmail: prev[editingStudent.id]?.guardianEmail ?? editingStudent.guardianEmail,
                           [key]: e.target.value,
                         },
                       }))

@@ -69,9 +69,11 @@ const navSections: NavSection[] = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen, onCloseMobile }: SidebarProps) {
   const navigate = useNavigate();
   const { currentUserRole, currentUserName } = useSchoolData();
   const [signingOut, setSigningOut] = useState(false);
@@ -108,11 +110,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen z-40 flex flex-col transition-all duration-300 ${collapsed ? "w-[72px]" : "w-[240px]"}`}
+      className={`fixed left-0 top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0 ${collapsed ? "md:w-[72px]" : "md:w-[240px]"} w-[240px]`}
       style={{ background: "linear-gradient(180deg, #1a1040 0%, #0f0a2e 100%)", borderRight: "1px solid rgba(255,255,255,0.06)" }}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 border-b border-white/[0.07] flex-shrink-0 ${collapsed ? "px-3 py-4 justify-center" : "px-4 py-4"}`}>
+      <div className={`flex items-center gap-3 border-b border-white/[0.07] flex-shrink-0 ${collapsed ? "md:px-3 md:justify-center" : ""} px-4 py-4`}>
         <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 rounded-xl overflow-hidden ring-2 ring-violet-500/30">
           <img
             src="https://public.readdy.ai/ai/img_res/8977dd17-b6c0-4d52-b401-1db8661d886f.png"
@@ -120,7 +124,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             className="w-full h-full object-cover"
           />
         </div>
-        {!collapsed && (
+        {(!collapsed || mobileOpen) && (
           <div className="flex-1 min-w-0">
             <p className="text-white font-extrabold text-sm leading-tight truncate">EduManage Pro</p>
             <p className="text-violet-400 text-[9px] font-bold tracking-[0.18em] uppercase truncate">School Management</p>
@@ -129,18 +133,24 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {!collapsed && (
           <button
             onClick={onToggle}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all cursor-pointer flex-shrink-0"
+            className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all cursor-pointer flex-shrink-0"
           >
             <i className="ri-menu-fold-line text-sm"></i>
           </button>
         )}
+        <button
+          onClick={onCloseMobile}
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+        >
+          <i className="ri-close-line text-base"></i>
+        </button>
       </div>
 
       {/* Collapsed toggle */}
       {collapsed && (
         <button
           onClick={onToggle}
-          className="mx-auto mt-2 w-8 h-8 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+          className="hidden md:flex mx-auto mt-2 w-8 h-8 items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
         >
           <i className="ri-menu-unfold-line text-sm"></i>
         </button>
@@ -154,7 +164,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           const isExpanded = expandedSections[section.title] !== false;
           return (
             <div key={section.title} className="mb-1">
-              {!collapsed && (
+              {(!collapsed || mobileOpen) && (
                 <button
                   onClick={() => toggleSection(section.title)}
                   className="w-full flex items-center justify-between px-4 py-1.5 cursor-pointer group"
@@ -163,19 +173,20 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   <i className={`${isExpanded ? "ri-arrow-down-s-line" : "ri-arrow-right-s-line"} text-white/20 text-xs`}></i>
                 </button>
               )}
-              {collapsed && <div className="mx-3 my-1.5 h-px bg-white/[0.06]"></div>}
+              {collapsed && !mobileOpen && <div className="mx-3 my-1.5 h-px bg-white/[0.06]"></div>}
 
               {(isExpanded || collapsed) && (
-                <div className={`${collapsed ? "px-2" : "px-2"} space-y-0.5`}>
+                <div className="px-2 space-y-0.5">
                   {visibleItems.map((item) => (
                     <NavLink
                       key={item.path}
                       to={item.path}
                       end={item.path === "/"}
-                      title={collapsed ? item.label : undefined}
+                      title={collapsed && !mobileOpen ? item.label : undefined}
+                      onClick={onCloseMobile}
                       className={({ isActive }) =>
                         `w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 cursor-pointer group relative
-                        ${collapsed ? "px-2 py-2.5 justify-center" : "px-3 py-2"}
+                        ${collapsed && !mobileOpen ? "px-2 py-2.5 justify-center" : "px-3 py-2"}
                         ${isActive
                           ? "bg-violet-600/25 text-violet-300"
                           : "text-white/50 hover:text-white/90 hover:bg-white/[0.06]"
@@ -184,13 +195,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     >
                       {({ isActive }) => (
                         <>
-                          {isActive && !collapsed && (
+                          {isActive && (!collapsed || mobileOpen) && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-violet-400"></span>
                           )}
                           <span className={`flex-shrink-0 w-5 h-5 flex items-center justify-center ${isActive ? "text-violet-400" : "text-white/40 group-hover:text-white/70"}`}>
                             <i className={`${item.icon} text-base`}></i>
                           </span>
-                          {!collapsed && (
+                          {(!collapsed || mobileOpen) && (
                             <>
                               <span className={`text-[13px] font-medium flex-1 text-left whitespace-nowrap ${isActive ? "text-violet-300" : ""}`}>
                                 {item.label}
@@ -202,7 +213,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                               )}
                             </>
                           )}
-                          {collapsed && item.badge !== undefined && (
+                          {collapsed && !mobileOpen && item.badge !== undefined && (
                             <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 flex-shrink-0"></span>
                           )}
                         </>
@@ -225,7 +236,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <div className="w-8 h-8 flex items-center justify-center rounded-full bg-violet-600 flex-shrink-0">
             <span className="text-white text-xs font-bold">{initials}</span>
           </div>
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <div className="flex-1 min-w-0">
               <p className="text-white text-xs font-semibold truncate">{currentUserName}</p>
               <div className="flex items-center gap-1 mt-0.5">
@@ -234,7 +245,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               </div>
             </div>
           )}
-          {!collapsed && <i className="ri-more-2-line text-white/25 text-sm flex-shrink-0"></i>}
+          {(!collapsed || mobileOpen) && <i className="ri-more-2-line text-white/25 text-sm flex-shrink-0"></i>}
         </div>
         <button
           type="button"
@@ -248,7 +259,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <span className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] flex-shrink-0">
             <i className={`text-sm ${signingOut ? "ri-loader-4-line animate-spin" : "ri-logout-box-r-line"}`}></i>
           </span>
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <span className="text-xs font-semibold">
               {signingOut ? "Signing out..." : "Log out"}
             </span>

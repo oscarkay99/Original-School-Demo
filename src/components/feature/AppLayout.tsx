@@ -10,15 +10,26 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children, title, subtitle }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-      <TopBar title={title} subtitle={subtitle} sidebarCollapsed={collapsed} />
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(!collapsed)}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+      />
+      <TopBar
+        title={title}
+        subtitle={subtitle}
+        sidebarCollapsed={collapsed}
+        onOpenSidebar={() => setMobileOpen(true)}
+      />
       <main
-        className={`transition-all duration-300 pt-16 min-h-screen ${collapsed ? "ml-[72px]" : "ml-[240px]"}`}
+        className={`transition-all duration-300 pt-16 min-h-screen md:${collapsed ? "ml-[72px]" : "ml-[240px]"}`}
       >
-        <div className="p-6">{children}</div>
+        <div className="p-4 md:p-6">{children}</div>
       </main>
     </div>
   );

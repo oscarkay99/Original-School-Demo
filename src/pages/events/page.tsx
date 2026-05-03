@@ -81,7 +81,7 @@ export default function EventsPage() {
     type: "Academic",
     status: "Upcoming",
   });
-  const isAdmin = ["admin", "administrator"].includes(currentUserRole.toLowerCase());
+  const canManageEvents = ["admin", "administrator", "secretary"].includes(currentUserRole.toLowerCase());
 
   const filtered = [...events]
     .filter((e) => filter === "All" || e.status === filter)
@@ -110,7 +110,7 @@ export default function EventsPage() {
   const selectedTiming = selectedEvent ? getEventTimingLabel(selectedEvent.date, selectedEvent.status) : "";
 
   const openEditModal = (eventId: string) => {
-    if (!isAdmin) return;
+    if (!canManageEvents) return;
     const event = events.find((entry) => entry.id === eventId);
     if (!event) return;
     setEditForm({
@@ -178,13 +178,15 @@ export default function EventsPage() {
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap"
-        >
-          <i className="ri-add-line text-sm"></i>
-          Add Event
-        </button>
+        {canManageEvents && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 cursor-pointer whitespace-nowrap"
+          >
+            <i className="ri-add-line text-sm"></i>
+            Add Event
+          </button>
+        )}
       </div>
 
       {/* Events Grid */}
@@ -225,11 +227,11 @@ export default function EventsPage() {
                   <button onClick={() => setSelectedEventId(event.id)} className="flex-1 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 text-xs font-medium cursor-pointer transition-all">View Details</button>
                   <button
                     onClick={() => openEditModal(event.id)}
-                    disabled={!isAdmin}
-                    className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${isAdmin ? "bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 text-rose-600 cursor-pointer" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}
-                    title={isAdmin ? "Edit event" : "Only administrators can edit events"}
+                    disabled={!canManageEvents}
+                    className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${canManageEvents ? "bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 text-rose-600 cursor-pointer" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}
+                    title={canManageEvents ? "Edit event" : "Only event managers can edit events"}
                   >
-                    {isAdmin ? "Edit" : "Admin Only"}
+                    {canManageEvents ? "Edit" : "Restricted"}
                   </button>
                 </div>
               </div>
@@ -298,7 +300,7 @@ export default function EventsPage() {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <p className="font-bold text-slate-800">Edit Event</p>
-                <p className="text-xs text-slate-400 mt-0.5">Administrator access only</p>
+                <p className="text-xs text-slate-400 mt-0.5">Available to event managers</p>
               </div>
               <button onClick={() => setEditingEventId(null)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 cursor-pointer text-slate-500">
                 <i className="ri-close-line text-lg"></i>
@@ -449,11 +451,11 @@ export default function EventsPage() {
               <div className="flex items-center justify-end">
                 <button
                   onClick={() => openEditModal(selectedEvent.id)}
-                  disabled={!isAdmin}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${isAdmin ? "bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}
-                  title={isAdmin ? "Edit this event" : "Only administrators can edit events"}
+                  disabled={!canManageEvents}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${canManageEvents ? "bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}
+                  title={canManageEvents ? "Edit this event" : "Only event managers can edit events"}
                 >
-                  {isAdmin ? "Edit Event" : "Admin Only"}
+                  {canManageEvents ? "Edit Event" : "Restricted"}
                 </button>
               </div>
             </div>

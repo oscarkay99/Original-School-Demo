@@ -46,7 +46,7 @@ export default function FeeVelocity() {
     ctx.lineWidth = lineW;
     ctx.lineCap = "round";
     ctx.stroke();
-  }, []);
+  }, [COLLECTED_PCT]);
 
   return (
     <div

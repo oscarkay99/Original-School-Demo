@@ -141,7 +141,7 @@ begin
     drop policy if exists profiles_select on public.profiles;
     create policy profiles_select on public.profiles
       for select to authenticated
-      using (public.is_admin() or id = auth.uid());
+      using (public.is_staff() or id = auth.uid());
     drop policy if exists profiles_insert on public.profiles;
     create policy profiles_insert on public.profiles
       for insert to authenticated

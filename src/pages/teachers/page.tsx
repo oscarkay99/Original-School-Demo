@@ -59,7 +59,7 @@ export default function TeachersPage() {
           { label: "Total Teachers", value: teachers.length, icon: "ri-user-star-line" },
           { label: "Active", value: teachers.filter((t) => t.status === "Active").length, icon: "ri-checkbox-circle-line" },
           { label: "On Leave", value: teachers.filter((t) => t.status === "On Leave").length, icon: "ri-time-line" },
-          { label: "Avg Rating", value: (teachers.reduce((a, b) => a + b.rating, 0) / teachers.length).toFixed(1), icon: "ri-star-line" },
+          { label: "Avg Rating", value: teachers.length ? (teachers.reduce((a, b) => a + b.rating, 0) / teachers.length).toFixed(1) : "0.0", icon: "ri-star-line" },
         ].map((m) => (
           <div key={m.label} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center gap-3">
             <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 flex-shrink-0">

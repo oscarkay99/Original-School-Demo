@@ -13,8 +13,12 @@ const reportTypes = [
 export default function ReportsPage() {
   const { students, attendanceData, financeData, inventoryItems } = useSchoolData();
   const [activeReport, setActiveReport] = useState("academic");
-  const avgGpa = (students.reduce((a, b) => a + b.gpa, 0) / students.length).toFixed(2);
-  const avgAttendance = Math.round(students.reduce((a, b) => a + b.attendance, 0) / students.length);
+  const avgGpa = students.length
+    ? (students.reduce((a, b) => a + b.gpa, 0) / students.length).toFixed(2)
+    : "0.00";
+  const avgAttendance = students.length
+    ? Math.round(students.reduce((a, b) => a + b.attendance, 0) / students.length)
+    : 0;
 
   const exportActiveReport = () => {
     if (activeReport === "academic") {
@@ -98,7 +102,7 @@ export default function ReportsPage() {
                     <p className="text-xs font-bold text-slate-700">{item.count} students</p>
                   </div>
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.count / students.length) * 100}%` }}></div>
+                    <div className={`h-full rounded-full ${item.color}`} style={{ width: `${students.length ? (item.count / students.length) * 100 : 0}%` }}></div>
                   </div>
                 </div>
               ))}
@@ -142,7 +146,7 @@ export default function ReportsPage() {
             <p className="font-semibold text-slate-800 text-sm mb-4">Weekly Attendance Summary</p>
             <div className="space-y-4">
               {attendanceData.map((d) => {
-                const pct = Math.round((d.present / d.total) * 100);
+                const pct = d.total ? Math.round((d.present / d.total) * 100) : 0;
                 return (
                   <div key={d.date}>
                     <div className="flex items-center justify-between mb-1.5">

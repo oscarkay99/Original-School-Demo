@@ -35,9 +35,12 @@ export default function GradesPage() {
   const myClasses   = myTeacherProfile?.classes  ?? [];
 
   // ── Admin state ──
-  const allSubjects = gradeSubjects.length
-    ? gradeSubjects
-    : ["Mathematics", "English", "Science", "Social Studies", "ICT", "French"];
+  const allSubjects = useMemo(
+    () => gradeSubjects.length
+      ? gradeSubjects
+      : ["Mathematics", "English", "Science", "Social Studies", "ICT", "French"],
+    [gradeSubjects]
+  );
 
   const [selectedGrade,   setSelectedGrade]   = useState("All");
   const [selectedSubject, setSelectedSubject] = useState("All");
