@@ -27,7 +27,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
         onOpenSidebar={() => setMobileOpen(true)}
       />
       <main
-        className={`transition-all duration-300 pt-16 min-h-screen md:${collapsed ? "ml-[72px]" : "ml-[240px]"}`}
+        className={`transition-all duration-300 pt-16 min-h-screen ${collapsed ? "md:ml-[72px]" : "md:ml-[240px]"}`}
       >
         <div className="p-4 md:p-6">{children}</div>
       </main>
