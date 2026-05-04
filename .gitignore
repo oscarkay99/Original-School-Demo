@@ -9,3 +9,7 @@ ios/App/Pods
 ios/App/App/public
 android/app/src/main/assets/public
 android/.gradle
+
+# Android signing — never commit these
+android/keystore.properties
+android/app/*.keystore
