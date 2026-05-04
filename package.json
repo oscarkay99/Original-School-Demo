@@ -6,11 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && cp out/index.html out/404.html",
+    "build:mobile": "vite build",
+    "mobile:sync": "npm run build:mobile && npx cap sync",
+    "mobile:ios": "npm run build:mobile && npx cap sync ios && npx cap open ios",
+    "mobile:android": "npm run build:mobile && npx cap sync android && npx cap open android",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc --noEmit --project tsconfig.app.json"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1",
     "@stripe/react-stripe-js": "4.0.2",
     "@supabase/supabase-js": "2.57.4",
     "@tailwindcss/typography": "^0.5.19",
